@@ -84,6 +84,13 @@
             font-weight: 600;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        .location-tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
     </style>
 </head>
 <body class=" text-gray-800">
@@ -164,9 +171,22 @@
         let selectedTeam = 'Sentry';
         let clearConfirmationTimeout = null;
 
-        // ** THE FIX IS HERE: Restoring the location constants to the global scope **
         const SENTRY_LOCATIONS = ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2'];
         const FOYER_LOCATIONS = ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'];
+        
+        const LOCATION_COLORS = {
+            'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' },
+            'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' },
+            'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' },
+            'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' },
+            'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' },
+            'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' },
+            'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' },
+            'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
+            'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' },
+            'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' },
+            'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' },
+        };
 
         const ICONS = {
             morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`,
@@ -175,9 +195,7 @@
             foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`
         };
 
-        function formatDateForInput(date) {
-            return new Date(date).toISOString().split('T')[0];
-        }
+        function formatDateForInput(date) { return new Date(date).toISOString().split('T')[0]; }
         
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('shift-date').value = formatDateForInput(new Date());
@@ -250,13 +268,15 @@
                 const dayShifts = groupedByDate[date];
                 const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 
-                let shiftsHTML = dayShifts.map(shift => `
+                let shiftsHTML = dayShifts.map(shift => {
+                    const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                    return `
                     <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
                         <div class="flex items-center">
                             ${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}
                             <div class="ml-3">
-                                <p class="font-semibold text-gray-800">${shift.shiftTime} - ${shift.location}</p>
-                                <div class="flex items-center text-sm text-gray-500">
+                                <p class="font-semibold text-gray-800">${shift.shiftTime} - <span class="location-tag ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></p>
+                                <div class="flex items-center text-sm text-gray-500 mt-1">
                                     ${shift.team === 'Sentry' ? ICONS.sentry : ICONS.foyer}
                                     <span>${shift.team} Team</span>
                                 </div>
@@ -266,7 +286,7 @@
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
                         </button>
                     </div>
-                `).join('<hr class="my-1 border-gray-100">');
+                `}).join('<hr class="my-1 border-gray-100">');
 
                 const dayCard = `
                     <div class="card">
@@ -329,22 +349,32 @@
                 shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1));
                 return Array.from(counts.entries()).map(([loc, count]) => {
                     const percentage = shiftList.length > 0 ? ((count / shiftList.length) * 100).toFixed(1) + '%' : '0.0%';
-                    return `<tr><td style="padding: 8px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
+                    return `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
                 }).join('');
             };
             const sentryData = calcFrequency(SENTRY_LOCATIONS, shifts.filter(s => s.team === 'Sentry'));
             const foyerData = calcFrequency(FOYER_LOCATIONS, shifts.filter(s => s.team === 'Foyer'));
-            const detailedLogBody = shifts.map(s => `<tr><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`).join('');
+            const detailedLogBody = shifts.map(s => {
+                const colorHex = LOCATION_COLORS[s.location]?.hex || '#ffffff';
+                return `<tr style="border-left: 5px solid ${colorHex};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`
+            }).join('');
 
             const reportHTML = `
-                <html><head><title>Shift Assignment Report</title><style>body{font-family:sans-serif;margin:2cm}h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f2f2f2}@media print{body{margin:1cm}}</style></head>
-                <body><h1>Shift Assignment Report</h1><p>Generated on: ${new Date().toLocaleString()}</p><h2>Report Summary</h2><ul><li>Total Shifts Logged: ${shifts.length}</li><li>Date Range: ${minDate} to ${maxDate}</li></ul><h2>Location Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead><tbody>${detailedLogBody}</tbody></table></body></html>`;
+                <html><head><title>Shift Assignment Report</title><style>body{font-family:sans-serif;margin:0;background-color:#f0f2f5;} .content{margin: 2cm;} h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;} .print-controls{position:sticky;top:0;background-color:white;padding:1rem;border-bottom:1px solid #ddd;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);z-index:100;} .btn{padding:0.5rem 1rem;border:none;border-radius:0.375rem;font-weight:600;cursor:pointer;margin:0 0.5rem;} .btn-print{background-color:#2563eb;color:white;} .btn-back{background-color:#e5e7eb;color:black;} @media print{body{margin:1cm;background-color:white;} .print-controls{display:none;} .content{margin:0;}}</style></head>
+                <body>
+                    <div class="print-controls">
+                        <button onclick="window.print()" class="btn btn-print">Print Report</button>
+                        <button onclick="window.close()" class="btn btn-back">Back to Tracker</button>
+                    </div>
+                    <div class="content">
+                        <h1>Shift Assignment Report</h1><p>Generated on: ${new Date().toLocaleString()}</p><h2>Report Summary</h2><ul><li>Total Shifts Logged: ${shifts.length}</li><li>Date Range: ${minDate} to ${maxDate}</li></ul><h2>Location Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead><tbody>${detailedLogBody}</tbody></table>
+                    </div>
+                </body></html>`;
 
-            const printWindow = window.open('', '', 'height=600,width=800');
+            const printWindow = window.open('', '', 'height=800,width=1000');
             printWindow.document.write(reportHTML);
             printWindow.document.close();
             printWindow.focus();
-            printWindow.print();
         }
     </script>
 </body>
