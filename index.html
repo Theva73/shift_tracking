@@ -6,11 +6,6 @@
     <title>Shift Assignment Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- PDF Generation Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.min.js"></script>
-
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -22,7 +17,6 @@
             background-color: white;
             border-radius: 0.75rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease;
         }
         .btn {
             transition: all 0.2s ease;
@@ -130,19 +124,19 @@
             <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
                  <h2 class="text-2xl font-semibold text-gray-800">Shift History</h2>
                  <div class="flex gap-2">
-                    <button onclick="generatePDFReport()" class="btn bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">Generate Report</button>
+                    <button onclick="generateReport()" class="btn bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">Generate Report</button>
                     <button id="clear-history-btn" onclick="handleClearHistory()" class="btn bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-red-700">Clear History</button>
                  </div>
             </div>
-            <div class="overflow-auto max-h-80">
+            <div class="overflow-auto max-h-96">
                 <table id="shift-history" class="w-full text-left">
                     <thead class="bg-gray-100">
                         <tr>
                             <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Date</th>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Shift Time</th>
                             <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Shift</th>
                             <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Team</th>
                             <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Location</th>
+                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="history-body" class="divide-y divide-gray-200">
@@ -218,20 +212,36 @@
             showToast('Assignment logged successfully!');
         }
 
-        function saveShift(shiftData) {
-            try {
-                let shifts = JSON.parse(localStorage.getItem('shiftHistory')) || [];
-                shifts.push(shiftData); 
+        function getShifts() {
+            return JSON.parse(localStorage.getItem('shiftHistory')) || [];
+        }
+
+        function saveAllShifts(shifts) {
+             try {
                 shifts.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate) || b.shiftTime.localeCompare(a.shiftTime));
                 localStorage.setItem('shiftHistory', JSON.stringify(shifts));
             } catch (error) {
-                console.error("Failed to save shift:", error);
+                console.error("Failed to save shifts:", error);
                 showToast("Error saving data. Your browser's storage might be full.", true);
             }
         }
+
+        function saveShift(shiftData) {
+            let shifts = getShifts();
+            shifts.push(shiftData);
+            saveAllShifts(shifts);
+        }
+
+        function deleteShift(shiftId) {
+            let shifts = getShifts();
+            const updatedShifts = shifts.filter(s => s.id !== shiftId);
+            saveAllShifts(updatedShifts);
+            renderHistory();
+            showToast('Shift entry deleted.');
+        }
         
         function renderHistory() {
-            const shifts = JSON.parse(localStorage.getItem('shiftHistory')) || [];
+            const shifts = getShifts();
             const historyBody = document.getElementById('history-body');
             historyBody.innerHTML = '';
             
@@ -241,11 +251,13 @@
                 const row = historyBody.insertRow();
                 row.className = 'hover:bg-gray-50';
                 row.innerHTML = `
-                    <td class="p-3 text-gray-700">${shift.date}</td>
-                    <td class="p-3 text-gray-700">${shift.shiftTime}</td>
+                    <td class="p-3 text-gray-700">${shift.date} at ${shift.shiftTime}</td>
                     <td class="p-3 text-gray-700">${shift.shift}</td>
                     <td class="p-3 text-gray-700">${shift.team}</td>
                     <td class="p-3 text-gray-700">${shift.location}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteShift(${shift.id})" class="text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                    </td>
                 `;
             });
         }
@@ -287,92 +299,93 @@
             }, 3000);
         }
 
-        function generatePDFReport() {
-            try {
-                const shifts = JSON.parse(localStorage.getItem('shiftHistory')) || [];
-                if (shifts.length === 0) {
-                    showToast('No data to generate a report.', true);
-                    return;
-                }
-
-                const { jsPDF } = window.jspdf;
-                // Add a check to ensure autoTable is loaded.
-                if (typeof jsPDF.API.autoTable !== 'function') {
-                     console.error("jsPDF autoTable plugin not loaded");
-                     showToast('PDF generation library is not ready. Please refresh the page.', true);
-                     return;
-                }
-                const doc = new jsPDF();
-
-                // --- Title ---
-                doc.setFontSize(20);
-                doc.text("Shift Assignment Report", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
-                doc.setFontSize(10);
-                doc.text(`Generated on: ${new Date().toLocaleString()}`, doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
-
-                // --- Summary ---
-                const dates = shifts.map(s => new Date(s.rawDate));
-                const minDate = new Date(Math.min.apply(null, dates)).toLocaleDateString('en-GB');
-                const maxDate = new Date(Math.max.apply(null, dates)).toLocaleDateString('en-GB');
-                doc.setFontSize(12);
-                doc.text("Report Summary", 14, 45);
-                doc.setFontSize(10);
-                doc.text(`Total Shifts Logged: ${shifts.length}`, 14, 52);
-                doc.text(`Date Range: ${minDate} to ${maxDate}`, 14, 58);
-
-                // --- Frequency Analysis ---
-                const sentryShifts = shifts.filter(s => s.team === 'Sentry');
-                const foyerShifts = shifts.filter(s => s.team === 'Foyer');
-                const calcFrequency = (locations, shiftList) => {
-                    const counts = new Map(locations.map(loc => [loc, 0]));
-                    shiftList.forEach(shift => {
-                        counts.set(shift.location, (counts.get(shift.location) || 0) + 1);
-                    });
-                    return Array.from(counts.entries()).map(([loc, count]) => {
-                        const percentage = shiftList.length > 0 ? ((count / shiftList.length) * 100).toFixed(1) + '%' : '0.0%';
-                        return [loc, count, percentage];
-                    });
-                };
-
-                const sentryData = calcFrequency(SENTRY_LOCATIONS, sentryShifts);
-                const foyerData = calcFrequency(FOYER_LOCATIONS, foyerShifts);
-
-                doc.setFontSize(12);
-                doc.text("Location Frequency Analysis", 14, 75);
-                
-                doc.autoTable({
-                    head: [['Sentry Team Location', 'Frequency', 'Percentage']],
-                    body: sentryData,
-                    startY: 80,
-                    theme: 'grid',
-                    headStyles: { fillColor: [22, 160, 133] }
-                });
-
-                 doc.autoTable({
-                    head: [['Foyer Team Location', 'Frequency', 'Percentage']],
-                    body: foyerData,
-                    startY: doc.autoTable.previous.finalY + 10,
-                    theme: 'grid',
-                    headStyles: { fillColor: [41, 128, 185] }
-                });
-
-                // --- Detailed Log ---
-                const detailedLogBody = shifts.map(s => [s.date, s.shiftTime, s.shift, s.team, s.location]);
-                doc.autoTable({
-                    head: [['Date', 'Time', 'Shift', 'Team', 'Location']],
-                    body: detailedLogBody,
-                    startY: doc.autoTable.previous.finalY + 10,
-                    theme: 'striped',
-                    headStyles: { fillColor: [44, 62, 80] }
-                });
-
-                doc.save(`Shift_Report_${formatDateForInput(new Date())}.pdf`);
-
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                showToast('An unexpected error occurred during PDF generation.', true);
+        function generateReport() {
+            const shifts = getShifts();
+            if (shifts.length === 0) {
+                showToast('No data to generate a report.', true);
+                return;
             }
+
+            // --- Calculate Stats ---
+            const dates = shifts.map(s => new Date(s.rawDate));
+            const minDate = new Date(Math.min.apply(null, dates)).toLocaleDateString('en-GB');
+            const maxDate = new Date(Math.max.apply(null, dates)).toLocaleDateString('en-GB');
+
+            const sentryShifts = shifts.filter(s => s.team === 'Sentry');
+            const foyerShifts = shifts.filter(s => s.team === 'Foyer');
+            const calcFrequency = (locations, shiftList) => {
+                const counts = new Map(locations.map(loc => [loc, 0]));
+                shiftList.forEach(shift => {
+                    counts.set(shift.location, (counts.get(shift.location) || 0) + 1);
+                });
+                return Array.from(counts.entries()).map(([loc, count]) => {
+                    const percentage = shiftList.length > 0 ? ((count / shiftList.length) * 100).toFixed(1) + '%' : '0.0%';
+                    return `<tr><td style="padding: 8px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
+                }).join('');
+            };
+
+            const sentryData = calcFrequency(SENTRY_LOCATIONS, sentryShifts);
+            const foyerData = calcFrequency(FOYER_LOCATIONS, foyerShifts);
+            const detailedLogBody = shifts.map(s => `<tr><td style="padding: 8px;">${s.date} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`).join('');
+
+            // --- Build HTML for Printing ---
+            const reportHTML = `
+                <html>
+                <head>
+                    <title>Shift Assignment Report</title>
+                    <style>
+                        body { font-family: sans-serif; margin: 2cm; }
+                        h1, h2, h3 { color: #333; }
+                        h1 { text-align: center; }
+                        p { text-align: center; font-size: 0.9em; color: #666; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 1em; margin-bottom: 2em; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        @media print {
+                            body { margin: 1cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Shift Assignment Report</h1>
+                    <p>Generated on: ${new Date().toLocaleString()}</p>
+                    
+                    <h2>Report Summary</h2>
+                    <ul>
+                        <li>Total Shifts Logged: ${shifts.length}</li>
+                        <li>Date Range: ${minDate} to ${maxDate}</li>
+                    </ul>
+
+                    <h2>Location Frequency Analysis</h2>
+                    <h3>Sentry Team</h3>
+                    <table>
+                        <thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead>
+                        <tbody>${sentryData}</tbody>
+                    </table>
+                    
+                    <h3>Foyer Team</h3>
+                    <table>
+                        <thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead>
+                        <tbody>${foyerData}</tbody>
+                    </table>
+
+                    <h2>Detailed Shift Log</h2>
+                    <table>
+                        <thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead>
+                        <tbody>${detailedLogBody}</tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            // --- Trigger Print Dialog ---
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write(reportHTML);
+            printWindow.document.close();
+            printWindow.focus(); // required for some browsers
+            printWindow.print();
         }
+
     </script>
 </body>
 </html>
