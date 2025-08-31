@@ -9,6 +9,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
         }
         .gradient-bg {
             background: linear-gradient(to right, #1e3a8a, #3b82f6);
@@ -16,250 +17,263 @@
         .card {
             background-color: white;
             border-radius: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
         .btn {
-            transition: all 0.2s ease;
+            transition: all 0.2s ease-in-out;
         }
         .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
-        .btn-shift-active {
-            background-color: #1e40af !important;
-            color: white !important;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Shift Toggle Switch */
+        .shift-toggle-bg {
+            background-color: #e5e7eb;
+            position: relative;
+            display: flex;
+            padding: 4px;
+            border-radius: 9999px;
         }
-        .tab-btn {
-            border-bottom: 3px solid transparent;
-            padding-bottom: 0.5rem;
-        }
-        .tab-btn-active {
-            border-bottom-color: #3b82f6;
-            color: #1e3a8a;
-            font-weight: 600;
-        }
-        #shift-history th {
-            position: sticky;
-            top: 0;
-            background-color: #f3f4f6;
-        }
-        input[type="date"]::-webkit-calendar-picker-indicator {
+        .shift-toggle-btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem 0;
+            font-semibold;
+            color: #4b5563;
             cursor: pointer;
-            filter: invert(0.5) sepia(0.8) saturate(5) hue-rotate(190deg);
+            z-index: 10;
+            transition: color 0.3s ease;
+        }
+        .shift-toggle-btn.active {
+            color: #1e3a8a;
+        }
+        .shift-toggle-slider {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            background-color: #ffffff;
+            border-radius: 9999px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .shift-toggle-bg[data-shift="Night"] .shift-toggle-slider {
+            transform: translateX(100%);
+        }
+
+        /* Team Tabs */
+        .team-tabs {
+            display: flex;
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+        }
+        .team-tab-btn {
+            flex: 1;
+            padding: 0.6rem 0;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            color: #4b5563;
+            transition: all 0.2s ease-in-out;
+        }
+        .team-tab-btn.active {
+            background-color: #ffffff;
+            color: #1e40af;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class=" text-gray-800">
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-6">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+        <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-900">Shift Assignment Tracker</h1>
-            <p class="text-gray-600 mt-2">A compact dashboard for all your shift logging needs.</p>
+            <p class="text-gray-600 mt-2">A sleek dashboard for all your shift logging needs.</p>
         </header>
 
         <!-- Main Assignment Logger Card -->
         <div class="card p-6 mb-8">
-            <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Log Your Assignment</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Date Selection -->
-                <div>
-                    <label for="shift-date" class="block text-sm font-medium text-gray-700 mb-1">1. Select Date</label>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <!-- Date -->
+                <div class="md:col-span-2">
+                    <label for="shift-date" class="block text-sm font-medium text-gray-700 mb-2">1. Date</label>
                     <input type="date" id="shift-date" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <!-- Shift Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">2. Select Shift</label>
-                    <div class="flex space-x-2">
-                        <button id="morning-shift-btn" onclick="selectShift('Morning')" class="btn flex-1 py-2.5 px-4 bg-white text-blue-700 border border-blue-700 rounded-lg font-semibold shadow-sm hover:bg-blue-50 text-sm">
-                            Morning
-                        </button>
-                        <button id="night-shift-btn" onclick="selectShift('Night')" class="btn flex-1 py-2.5 px-4 bg-white text-blue-700 border border-blue-700 rounded-lg font-semibold shadow-sm hover:bg-blue-50 text-sm">
-                            Night
-                        </button>
+                <!-- Shift -->
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">2. Shift</label>
+                    <div id="shift-toggle" class="shift-toggle-bg" data-shift="Morning">
+                        <div class="shift-toggle-slider"></div>
+                        <div id="morning-shift-btn" onclick="selectShift('Morning')" class="shift-toggle-btn active">Morning</div>
+                        <div id="night-shift-btn" onclick="selectShift('Night')" class="shift-toggle-btn">Night</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Team & Location Tabs -->
-            <div>
-                 <label class="block text-sm font-medium text-gray-700 mb-2">3. Select Team & Location</label>
-                 <div class="border-b border-gray-200 mb-4">
-                     <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                         <button id="sentry-tab" onclick="selectTeam('Sentry')" class="tab-btn text-gray-500 hover:text-gray-700">Sentry Team</button>
-                         <button id="foyer-tab" onclick="selectTeam('Foyer')" class="tab-btn text-gray-500 hover:text-gray-700">Foyer Team</button>
-                     </nav>
+            <!-- Team & Location -->
+            <div class="mt-6">
+                 <label class="block text-sm font-medium text-gray-700 mb-2">3. Team & Location</label>
+                 <div class="team-tabs mb-4">
+                     <button id="sentry-tab" onclick="selectTeam('Sentry')" class="team-tab-btn active">Sentry Team</button>
+                     <button id="foyer-tab" onclick="selectTeam('Foyer')" class="team-tab-btn">Foyer Team</button>
                  </div>
-
+                 
                  <div id="location-selectors">
                      <div id="sentry-location-wrapper">
                          <select id="sentry-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option>E1</option>
-                            <option>GUARD HOUSE</option>
-                            <option>ECHO 3</option>
-                            <option>PATROL 1</option>
-                            <option>OE / STANDBY</option>
-                            <option>ECHO 2</option>
-                            <option>PATROL 2</option>
+                            <option>E1</option><option>GUARD HOUSE</option><option>ECHO 3</option><option>PATROL 1</option><option>OE / STANDBY</option><option>ECHO 2</option><option>PATROL 2</option>
                          </select>
                      </div>
                      <div id="foyer-location-wrapper" class="hidden">
                          <select id="foyer-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option>VISITOR X-RAY</option>
-                            <option>STAFF X-RAY</option>
-                            <option>N1 (CNB DST)</option>
-                            <option>OE / STANDBY</option>
-                            <option>VERTICAL PROWLER</option>
+                            <option>VISITOR X-RAY</option><option>STAFF X-RAY</option><option>N1 (CNB DST)</option><option>OE / STANDBY</option><option>VERTICAL PROWLER</option>
                          </select>
                      </div>
                  </div>
             </div>
             
-            <button onclick="logAssignment()" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:opacity-90 mt-6">
+            <button onclick="logAssignment()" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg mt-6">
                 Log Assignment
             </button>
         </div>
         
         <!-- Shift History -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+        <div class="space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-4">
                  <h2 class="text-2xl font-semibold text-gray-800">Shift History</h2>
                  <div class="flex gap-2">
-                    <button onclick="generateReport()" class="btn bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">Generate Report</button>
+                    <button onclick="generateReport()" class="btn bg-white border border-blue-600 text-blue-600 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-blue-50">Generate Report</button>
                     <button id="clear-history-btn" onclick="handleClearHistory()" class="btn bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-red-700">Clear History</button>
                  </div>
             </div>
-            <div class="overflow-auto max-h-96">
-                <table id="shift-history" class="w-full text-left">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Date</th>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Shift</th>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Team</th>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider">Location</th>
-                            <th class="p-3 font-semibold text-sm text-gray-600 uppercase tracking-wider text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-body" class="divide-y divide-gray-200">
-                    </tbody>
-                </table>
+            <div id="history-list" class="space-y-4">
+                <!-- History cards will be injected here -->
             </div>
-             <p id="no-history" class="text-center text-gray-500 py-8">No shift data recorded yet.</p>
+            <p id="no-history" class="text-center text-gray-500 py-8 card">No shift data recorded yet.</p>
         </div>
 
         <!-- Toast Notification -->
         <div id="toast" class="fixed bottom-5 right-5 bg-green-500 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300"></div>
-        
     </div>
 
     <script>
-        let selectedShift = '';
+        let selectedShift = 'Morning';
         let selectedTeam = 'Sentry';
         let clearConfirmationTimeout = null;
 
-        const SENTRY_LOCATIONS = ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2'];
-        const FOYER_LOCATIONS = ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'];
+        const ICONS = {
+            morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`,
+            night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`,
+            sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`,
+            foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`
+        };
 
         function formatDateForInput(date) {
-            const d = new Date(date);
-            let month = '' + (d.getMonth() + 1);
-            let day = '' + d.getDate();
-            const year = d.getFullYear();
-            if (month.length < 2) month = '0' + month;
-            if (day.length < 2) day = '0' + day;
-            return [year, month, day].join('-');
+            return new Date(date).toISOString().split('T')[0];
         }
         
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('shift-date').value = formatDateForInput(new Date());
             selectTeam('Sentry');
+            selectShift('Morning');
             renderHistory();
         });
 
         function selectShift(shift) {
             selectedShift = shift;
-            document.getElementById('morning-shift-btn').classList.toggle('btn-shift-active', shift === 'Morning');
-            document.getElementById('night-shift-btn').classList.toggle('btn-shift-active', shift === 'Night');
+            document.getElementById('shift-toggle').dataset.shift = shift;
+            document.getElementById('morning-shift-btn').classList.toggle('active', shift === 'Morning');
+            document.getElementById('night-shift-btn').classList.toggle('active', shift === 'Night');
         }
         
         function selectTeam(team) {
             selectedTeam = team;
-            document.getElementById('sentry-tab').classList.toggle('tab-btn-active', team === 'Sentry');
-            document.getElementById('foyer-tab').classList.toggle('tab-btn-active', team === 'Foyer');
+            document.getElementById('sentry-tab').classList.toggle('active', team === 'Sentry');
+            document.getElementById('foyer-tab').classList.toggle('active', team === 'Foyer');
             document.getElementById('sentry-location-wrapper').classList.toggle('hidden', team !== 'Sentry');
             document.getElementById('foyer-location-wrapper').classList.toggle('hidden', team !== 'Foyer');
         }
 
         function logAssignment() {
             const dateValue = document.getElementById('shift-date').value;
-            if (!dateValue) return showToast('Please select a date first.', true);
-            if (!selectedShift) return showToast('Please select a shift first.', true);
+            if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true);
             
             const location = document.getElementById(`${selectedTeam.toLowerCase()}-location`).value;
-            const dateObj = new Date(dateValue + 'T00:00:00'); 
-            const formattedDate = dateObj.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const shiftTime = selectedShift === 'Morning' ? '08:00' : '20:00';
-            const shiftData = {
-                id: Date.now(),
-                rawDate: dateValue,
-                date: formattedDate,
-                shiftTime,
-                shift: selectedShift,
-                team: selectedTeam,
-                location
-            };
+            const shiftData = { id: Date.now(), rawDate: dateValue, shiftTime, shift: selectedShift, team: selectedTeam, location };
+            
             saveShift(shiftData);
             renderHistory();
             showToast('Assignment logged successfully!');
         }
 
-        function getShifts() {
-            return JSON.parse(localStorage.getItem('shiftHistory')) || [];
-        }
-
+        function getShifts() { return JSON.parse(localStorage.getItem('shiftHistory')) || []; }
         function saveAllShifts(shifts) {
              try {
                 shifts.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate) || b.shiftTime.localeCompare(a.shiftTime));
                 localStorage.setItem('shiftHistory', JSON.stringify(shifts));
-            } catch (error) {
-                console.error("Failed to save shifts:", error);
-                showToast("Error saving data. Your browser's storage might be full.", true);
-            }
+            } catch (e) { showToast("Error saving data.", true); }
         }
-
         function saveShift(shiftData) {
             let shifts = getShifts();
             shifts.push(shiftData);
             saveAllShifts(shifts);
         }
-
         function deleteShift(shiftId) {
-            let shifts = getShifts();
-            const updatedShifts = shifts.filter(s => s.id !== shiftId);
-            saveAllShifts(updatedShifts);
+            saveAllShifts(getShifts().filter(s => s.id !== shiftId));
             renderHistory();
             showToast('Shift entry deleted.');
         }
         
         function renderHistory() {
             const shifts = getShifts();
-            const historyBody = document.getElementById('history-body');
-            historyBody.innerHTML = '';
-            
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+
             document.getElementById('no-history').style.display = shifts.length === 0 ? 'block' : 'none';
-            
-            shifts.forEach(shift => {
-                const row = historyBody.insertRow();
-                row.className = 'hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="p-3 text-gray-700">${shift.date} at ${shift.shiftTime}</td>
-                    <td class="p-3 text-gray-700">${shift.shift}</td>
-                    <td class="p-3 text-gray-700">${shift.team}</td>
-                    <td class="p-3 text-gray-700">${shift.location}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteShift(${shift.id})" class="text-red-500 hover:text-red-700 font-semibold">Delete</button>
-                    </td>
+            historyList.style.display = shifts.length > 0 ? 'block' : 'none';
+            if (shifts.length === 0) return;
+
+            const groupedByDate = shifts.reduce((acc, shift) => {
+                (acc[shift.rawDate] = acc[shift.rawDate] || []).push(shift);
+                return acc;
+            }, {});
+
+            for (const date in groupedByDate) {
+                const dayShifts = groupedByDate[date];
+                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                
+                let shiftsHTML = dayShifts.map(shift => `
+                    <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
+                        <div class="flex items-center">
+                            ${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}
+                            <div class="ml-3">
+                                <p class="font-semibold text-gray-800">${shift.shiftTime} - ${shift.location}</p>
+                                <div class="flex items-center text-sm text-gray-500">
+                                    ${shift.team === 'Sentry' ? ICONS.sentry : ICONS.foyer}
+                                    <span>${shift.team} Team</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteShift(${shift.id})" class="text-gray-400 hover:text-red-600 font-semibold p-2 rounded-full">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                `).join('<hr class="my-1 border-gray-100">');
+
+                const dayCard = `
+                    <div class="card">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-700">${formattedDate}</h3>
+                        </div>
+                        <div class="p-2">${shiftsHTML}</div>
+                    </div>
                 `;
-            });
+                historyList.innerHTML += dayCard;
+            }
         }
 
         function handleClearHistory() {
@@ -301,91 +315,34 @@
 
         function generateReport() {
             const shifts = getShifts();
-            if (shifts.length === 0) {
-                showToast('No data to generate a report.', true);
-                return;
-            }
+            if (shifts.length === 0) return showToast('No data to generate a report.', true);
 
-            // --- Calculate Stats ---
             const dates = shifts.map(s => new Date(s.rawDate));
             const minDate = new Date(Math.min.apply(null, dates)).toLocaleDateString('en-GB');
             const maxDate = new Date(Math.max.apply(null, dates)).toLocaleDateString('en-GB');
-
-            const sentryShifts = shifts.filter(s => s.team === 'Sentry');
-            const foyerShifts = shifts.filter(s => s.team === 'Foyer');
             const calcFrequency = (locations, shiftList) => {
                 const counts = new Map(locations.map(loc => [loc, 0]));
-                shiftList.forEach(shift => {
-                    counts.set(shift.location, (counts.get(shift.location) || 0) + 1);
-                });
+                shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1));
                 return Array.from(counts.entries()).map(([loc, count]) => {
                     const percentage = shiftList.length > 0 ? ((count / shiftList.length) * 100).toFixed(1) + '%' : '0.0%';
                     return `<tr><td style="padding: 8px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
                 }).join('');
             };
+            const sentryData = calcFrequency(SENTRY_LOCATIONS, shifts.filter(s => s.team === 'Sentry'));
+            const foyerData = calcFrequency(FOYER_LOCATIONS, shifts.filter(s => s.team === 'Foyer'));
+            const detailedLogBody = shifts.map(s => `<tr><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`).join('');
 
-            const sentryData = calcFrequency(SENTRY_LOCATIONS, sentryShifts);
-            const foyerData = calcFrequency(FOYER_LOCATIONS, foyerShifts);
-            const detailedLogBody = shifts.map(s => `<tr><td style="padding: 8px;">${s.date} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`).join('');
-
-            // --- Build HTML for Printing ---
             const reportHTML = `
-                <html>
-                <head>
-                    <title>Shift Assignment Report</title>
-                    <style>
-                        body { font-family: sans-serif; margin: 2cm; }
-                        h1, h2, h3 { color: #333; }
-                        h1 { text-align: center; }
-                        p { text-align: center; font-size: 0.9em; color: #666; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 1em; margin-bottom: 2em; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f2f2f2; }
-                        @media print {
-                            body { margin: 1cm; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>Shift Assignment Report</h1>
-                    <p>Generated on: ${new Date().toLocaleString()}</p>
-                    
-                    <h2>Report Summary</h2>
-                    <ul>
-                        <li>Total Shifts Logged: ${shifts.length}</li>
-                        <li>Date Range: ${minDate} to ${maxDate}</li>
-                    </ul>
+                <html><head><title>Shift Assignment Report</title><style>body{font-family:sans-serif;margin:2cm}h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f2f2f2}@media print{body{margin:1cm}}</style></head>
+                <body><h1>Shift Assignment Report</h1><p>Generated on: ${new Date().toLocaleString()}</p><h2>Report Summary</h2><ul><li>Total Shifts Logged: ${shifts.length}</li><li>Date Range: ${minDate} to ${maxDate}</li></ul><h2>Location Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead><tbody>${detailedLogBody}</tbody></table></body></html>`;
 
-                    <h2>Location Frequency Analysis</h2>
-                    <h3>Sentry Team</h3>
-                    <table>
-                        <thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead>
-                        <tbody>${sentryData}</tbody>
-                    </table>
-                    
-                    <h3>Foyer Team</h3>
-                    <table>
-                        <thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead>
-                        <tbody>${foyerData}</tbody>
-                    </table>
-
-                    <h2>Detailed Shift Log</h2>
-                    <table>
-                        <thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead>
-                        <tbody>${detailedLogBody}</tbody>
-                    </table>
-                </body>
-                </html>
-            `;
-
-            // --- Trigger Print Dialog ---
             const printWindow = window.open('', '', 'height=600,width=800');
             printWindow.document.write(reportHTML);
             printWindow.document.close();
-            printWindow.focus(); // required for some browsers
+            printWindow.focus();
             printWindow.print();
         }
-
     </script>
 </body>
 </html>
+
