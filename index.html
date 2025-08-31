@@ -287,8 +287,9 @@
                 return;
             }
 
-            // Correctly instantiate jsPDF
-            const doc = new jspdf.jsPDF();
+            // Correctly instantiate jsPDF from the global window object
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
             // --- Title ---
             doc.setFontSize(20);
@@ -326,6 +327,7 @@
             doc.setFontSize(12);
             doc.text("Location Frequency Analysis", 14, 75);
             
+            // Use the autoTable method correctly
             doc.autoTable({
                 head: [['Sentry Team Location', 'Frequency', 'Percentage']],
                 body: sentryData,
