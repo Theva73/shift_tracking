@@ -6,9 +6,15 @@
     <title>Shift Assignment Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- PDF Generation Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Helper script to make jsPDF global for the autoTable plugin to find.
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf-autotable.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -287,8 +293,6 @@
                 return;
             }
 
-            // Correctly instantiate jsPDF from the global window object
-            const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
             // --- Title ---
@@ -327,7 +331,6 @@
             doc.setFontSize(12);
             doc.text("Location Frequency Analysis", 14, 75);
             
-            // Use the autoTable method correctly
             doc.autoTable({
                 head: [['Sentry Team Location', 'Frequency', 'Percentage']],
                 body: sentryData,
@@ -339,7 +342,7 @@
              doc.autoTable({
                 head: [['Foyer Team Location', 'Frequency', 'Percentage']],
                 body: foyerData,
-                startY: doc.autoTable.previous.finalY + 10,
+                startY: doc.lastAutoTable.finalY + 10,
                 theme: 'grid',
                 headStyles: { fillColor: [41, 128, 185] }
             });
@@ -349,7 +352,7 @@
             doc.autoTable({
                 head: [['Date', 'Time', 'Shift', 'Team', 'Location']],
                 body: detailedLogBody,
-                startY: doc.autoTable.previous.finalY + 10,
+                startY: doc.lastAutoTable.finalY + 10,
                 theme: 'striped',
                 headStyles: { fillColor: [44, 62, 80] }
             });
