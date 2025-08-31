@@ -84,7 +84,7 @@
             font-weight: 600;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .location-tag {
+        .location-tag, .ot-tag {
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
             font-weight: 500;
@@ -97,20 +97,20 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">Shift Assignment Tracker</h1>
-            <p class="text-gray-600 mt-2">A sleek dashboard for all your shift logging needs.</p>
+            <h1 class="text-4xl font-bold text-gray-900">Shift & Hours Tracker</h1>
+            <p class="text-gray-600 mt-2">Your complete dashboard for assignments and work hours.</p>
         </header>
 
         <!-- Main Assignment Logger Card -->
         <div class="card p-6 mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <!-- Date -->
-                <div class="md:col-span-2">
+                <div>
                     <label for="shift-date" class="block text-sm font-medium text-gray-700 mb-2">1. Date</label>
                     <input type="date" id="shift-date" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <!-- Shift -->
-                <div class="md:col-span-3">
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">2. Shift</label>
                     <div id="shift-toggle" class="shift-toggle-bg" data-shift="Morning">
                         <div class="shift-toggle-slider"></div>
@@ -118,26 +118,38 @@
                         <div id="night-shift-btn" onclick="selectShift('Night')" class="shift-toggle-btn">Night</div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Team & Location -->
-            <div class="mt-6">
-                 <label class="block text-sm font-medium text-gray-700 mb-2">3. Team & Location</label>
-                 <div class="team-tabs mb-4">
-                     <button id="sentry-tab" onclick="selectTeam('Sentry')" class="team-tab-btn active">Sentry Team</button>
-                     <button id="foyer-tab" onclick="selectTeam('Foyer')" class="team-tab-btn">Foyer Team</button>
-                 </div>
-                 
-                 <div id="location-selectors">
-                     <div id="sentry-location-wrapper">
-                         <select id="sentry-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option>E1</option><option>GUARD HOUSE</option><option>ECHO 3</option><option>PATROL 1</option><option>OE / STANDBY</option><option>ECHO 2</option><option>PATROL 2</option>
-                         </select>
-                     </div>
-                     <div id="foyer-location-wrapper" class="hidden">
-                         <select id="foyer-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option>VISITOR X-RAY</option><option>STAFF X-RAY</option><option>N1 (CNB DST)</option><option>OE / STANDBY</option><option>VERTICAL PROWLER</option>
-                         </select>
+                 <!-- Team & Location -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">3. Team & Location</label>
+                    <div class="team-tabs mb-4">
+                        <button id="sentry-tab" onclick="selectTeam('Sentry')" class="team-tab-btn active">Sentry Team</button>
+                        <button id="foyer-tab" onclick="selectTeam('Foyer')" class="team-tab-btn">Foyer Team</button>
+                    </div>
+                    <div id="location-selectors">
+                        <div id="sentry-location-wrapper">
+                            <select id="sentry-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option>E1</option><option>GUARD HOUSE</option><option>ECHO 3</option><option>PATROL 1</option><option>OE / STANDBY</option><option>ECHO 2</option><option>PATROL 2</option>
+                            </select>
+                        </div>
+                        <div id="foyer-location-wrapper" class="hidden">
+                            <select id="foyer-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option>VISITOR X-RAY</option><option>STAFF X-RAY</option><option>N1 (CNB DST)</option><option>OE / STANDBY</option><option>VERTICAL PROWLER</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Hours & OT -->
+                 <div class="md:col-span-2">
+                     <label class="block text-sm font-medium text-gray-700 mb-2">4. Hours & Overtime</label>
+                     <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                         <div class="flex-1">
+                            <label for="shift-hours" class="text-sm text-gray-600">Working Hours</label>
+                            <input type="number" id="shift-hours" value="12" class="w-full mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                         </div>
+                         <div class="flex items-center pt-5">
+                            <input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="is-ot" class="ml-2 text-sm font-medium text-gray-700">Mark as Overtime (OT)</label>
+                         </div>
                      </div>
                  </div>
             </div>
@@ -156,10 +168,29 @@
                     <button id="clear-history-btn" onclick="handleClearHistory()" class="btn bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-red-700">Clear History</button>
                  </div>
             </div>
+             <!-- Monthly Dashboard -->
+            <div class="card p-4">
+                <div class="flex justify-between items-center">
+                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                    <h3 id="month-display" class="text-lg font-bold text-center text-gray-800"></h3>
+                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4 text-center">
+                    <div>
+                        <p class="text-sm text-gray-500">Total Hours</p>
+                        <p id="total-hours" class="text-2xl font-bold text-blue-700">0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Overtime Hours</p>
+                        <p id="ot-hours" class="text-2xl font-bold text-amber-600">0</p>
+                    </div>
+                </div>
+            </div>
+
             <div id="history-list" class="space-y-4">
                 <!-- History cards will be injected here -->
             </div>
-            <p id="no-history" class="text-center text-gray-500 py-8 card">No shift data recorded yet.</p>
+            <p id="no-history" class="text-center text-gray-500 py-8 card">No shifts recorded for this month.</p>
         </div>
 
         <!-- Toast Notification -->
@@ -170,29 +201,17 @@
         let selectedShift = 'Morning';
         let selectedTeam = 'Sentry';
         let clearConfirmationTimeout = null;
+        let displayedDate = new Date();
 
         const SENTRY_LOCATIONS = ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2'];
         const FOYER_LOCATIONS = ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'];
         
         const LOCATION_COLORS = {
-            'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' },
-            'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' },
-            'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' },
-            'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' },
-            'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' },
-            'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' },
-            'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' },
-            'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
-            'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' },
-            'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' },
-            'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' },
+            'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' },
         };
 
         const ICONS = {
-            morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`,
-            night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`,
-            sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`,
-            foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`
+            morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`
         };
 
         function formatDateForInput(date) { return new Date(date).toISOString().split('T')[0]; }
@@ -201,8 +220,15 @@
             document.getElementById('shift-date').value = formatDateForInput(new Date());
             selectTeam('Sentry');
             selectShift('Morning');
+            document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
+            document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
             renderHistory();
         });
+
+        function changeMonth(direction) {
+            displayedDate.setMonth(displayedDate.getMonth() + direction);
+            renderHistory();
+        }
 
         function selectShift(shift) {
             selectedShift = shift;
@@ -224,10 +250,14 @@
             if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true);
             
             const location = document.getElementById(`${selectedTeam.toLowerCase()}-location`).value;
+            const hours = parseFloat(document.getElementById('shift-hours').value) || 12;
+            const isOT = document.getElementById('is-ot').checked;
             const shiftTime = selectedShift === 'Morning' ? '08:00' : '20:00';
-            const shiftData = { id: Date.now(), rawDate: dateValue, shiftTime, shift: selectedShift, team: selectedTeam, location };
+            const shiftData = { id: Date.now(), rawDate: dateValue, shiftTime, shift: selectedShift, team: selectedTeam, location, hours, isOT };
             
             saveShift(shiftData);
+            // Set displayed month to the one just logged
+            displayedDate = new Date(dateValue + 'T00:00:00');
             renderHistory();
             showToast('Assignment logged successfully!');
         }
@@ -251,22 +281,40 @@
         }
         
         function renderHistory() {
-            const shifts = getShifts();
+            const allShifts = getShifts();
+            const year = displayedDate.getFullYear();
+            const month = displayedDate.getMonth();
+            document.getElementById('month-display').textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const shiftsForMonth = allShifts.filter(s => {
+                const shiftDate = new Date(s.rawDate + 'T00:00:00');
+                return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
+            });
+
+            // Calculate totals
+            let totalHours = 0, otHours = 0;
+            shiftsForMonth.forEach(s => {
+                totalHours += s.hours;
+                if (s.isOT) otHours += s.hours;
+            });
+            document.getElementById('total-hours').textContent = totalHours;
+            document.getElementById('ot-hours').textContent = otHours;
+
+            // Render list
             const historyList = document.getElementById('history-list');
             historyList.innerHTML = '';
+            document.getElementById('no-history').style.display = shiftsForMonth.length === 0 ? 'block' : 'none';
+            historyList.style.display = shiftsForMonth.length > 0 ? 'block' : 'none';
+            if (shiftsForMonth.length === 0) return;
 
-            document.getElementById('no-history').style.display = shifts.length === 0 ? 'block' : 'none';
-            historyList.style.display = shifts.length > 0 ? 'block' : 'none';
-            if (shifts.length === 0) return;
-
-            const groupedByDate = shifts.reduce((acc, shift) => {
+            const groupedByDate = shiftsForMonth.reduce((acc, shift) => {
                 (acc[shift.rawDate] = acc[shift.rawDate] || []).push(shift);
                 return acc;
             }, {});
 
             for (const date in groupedByDate) {
                 const dayShifts = groupedByDate[date];
-                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
                 
                 let shiftsHTML = dayShifts.map(shift => {
                     const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
@@ -274,9 +322,15 @@
                     <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
                         <div class="flex items-center">
                             ${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}
-                            <div class="ml-3">
-                                <p class="font-semibold text-gray-800">${shift.shiftTime} - <span class="location-tag ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></p>
-                                <div class="flex items-center text-sm text-gray-500 mt-1">
+                            <div class="ml-4">
+                                <div class="flex items-center gap-x-2">
+                                    <p class="font-semibold text-gray-800">${shift.shiftTime}</p>
+                                    ${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : ''}
+                                </div>
+                                <div class="mt-1"><span class="location-tag ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></div>
+                                <div class="flex items-center text-sm text-gray-500 mt-2">
+                                    <span>${shift.hours} hrs</span>
+                                    <span class="mx-2">|</span>
                                     ${shift.team === 'Sentry' ? ICONS.sentry : ICONS.foyer}
                                     <span>${shift.team} Team</span>
                                 </div>
@@ -338,12 +392,18 @@
         }
 
         function generateReport() {
-            const shifts = getShifts();
-            if (shifts.length === 0) return showToast('No data to generate a report.', true);
+            const allShifts = getShifts();
+            const shiftsForMonth = allShifts.filter(s => {
+                const shiftDate = new Date(s.rawDate + 'T00:00:00');
+                return shiftDate.getFullYear() === displayedDate.getFullYear() && shiftDate.getMonth() === displayedDate.getMonth();
+            });
 
-            const dates = shifts.map(s => new Date(s.rawDate));
-            const minDate = new Date(Math.min.apply(null, dates)).toLocaleDateString('en-GB');
-            const maxDate = new Date(Math.max.apply(null, dates)).toLocaleDateString('en-GB');
+            if (shiftsForMonth.length === 0) return showToast('No data for the selected month to report.', true);
+
+            const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            let totalHours = 0, otHours = 0;
+            shiftsForMonth.forEach(s => { totalHours += s.hours; if (s.isOT) otHours += s.hours; });
+
             const calcFrequency = (locations, shiftList) => {
                 const counts = new Map(locations.map(loc => [loc, 0]));
                 shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1));
@@ -352,22 +412,22 @@
                     return `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
                 }).join('');
             };
-            const sentryData = calcFrequency(SENTRY_LOCATIONS, shifts.filter(s => s.team === 'Sentry'));
-            const foyerData = calcFrequency(FOYER_LOCATIONS, shifts.filter(s => s.team === 'Foyer'));
-            const detailedLogBody = shifts.map(s => {
+            const sentryData = calcFrequency(SENTRY_LOCATIONS, shiftsForMonth.filter(s => s.team === 'Sentry'));
+            const foyerData = calcFrequency(FOYER_LOCATIONS, shiftsForMonth.filter(s => s.team === 'Foyer'));
+            const detailedLogBody = shiftsForMonth.map(s => {
                 const colorHex = LOCATION_COLORS[s.location]?.hex || '#ffffff';
-                return `<tr style="border-left: 5px solid ${colorHex};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.team}</td><td style="padding: 8px;">${s.location}</td></tr>`
+                return `<tr style="border-left: 5px solid ${colorHex};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.shift}</td><td style="padding: 8px;">${s.location}</td><td style="padding: 8px;">${s.hours}</td><td style="padding: 8px;">${s.isOT ? 'Yes' : 'No'}</td></tr>`
             }).join('');
 
             const reportHTML = `
-                <html><head><title>Shift Assignment Report</title><style>body{font-family:sans-serif;margin:0;background-color:#f0f2f5;} .content{margin: 2cm;} h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;} .print-controls{position:sticky;top:0;background-color:white;padding:1rem;border-bottom:1px solid #ddd;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);z-index:100;} .btn{padding:0.5rem 1rem;border:none;border-radius:0.375rem;font-weight:600;cursor:pointer;margin:0 0.5rem;} .btn-print{background-color:#2563eb;color:white;} .btn-back{background-color:#e5e7eb;color:black;} @media print{body{margin:1cm;background-color:white;} .print-controls{display:none;} .content{margin:0;}}</style></head>
+                <html><head><title>Shift Report - ${monthName}</title><style>body{font-family:sans-serif;margin:0;background-color:#f0f2f5;} .content{margin: 2cm;} h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;} .print-controls{position:sticky;top:0;background-color:white;padding:1rem;border-bottom:1px solid #ddd;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);z-index:100;} .btn{padding:0.5rem 1rem;border:none;border-radius:0.375rem;font-weight:600;cursor:pointer;margin:0 0.5rem;} .btn-print{background-color:#2563eb;color:white;} .btn-back{background-color:#e5e7eb;color:black;} @media print{body{margin:1cm;background-color:white;} .print-controls{display:none;} .content{margin:0;}}</style></head>
                 <body>
                     <div class="print-controls">
                         <button onclick="window.print()" class="btn btn-print">Print Report</button>
                         <button onclick="window.close()" class="btn btn-back">Back to Tracker</button>
                     </div>
                     <div class="content">
-                        <h1>Shift Assignment Report</h1><p>Generated on: ${new Date().toLocaleString()}</p><h2>Report Summary</h2><ul><li>Total Shifts Logged: ${shifts.length}</li><li>Date Range: ${minDate} to ${maxDate}</li></ul><h2>Location Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Location</th></tr></thead><tbody>${detailedLogBody}</tbody></table>
+                        <h1>Shift Assignment Report</h1><h2>${monthName}</h2><p>Generated on: ${new Date().toLocaleString()}</p><h2>Monthly Summary</h2><ul><li>Total Hours Logged: ${totalHours}</li><li>Overtime Hours Logged: ${otHours}</li></ul><h2>Location Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Location</th><th>Hours</th><th>OT</th></tr></thead><tbody>${detailedLogBody}</tbody></table>
                     </div>
                 </body></html>`;
 
@@ -379,4 +439,3 @@
     </script>
 </body>
 </html>
-
