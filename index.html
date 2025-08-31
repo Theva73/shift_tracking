@@ -63,26 +63,14 @@
             transform: translateX(100%);
         }
 
-        /* Team Tabs */
-        .team-tabs {
-            display: flex;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-            padding: 0.25rem;
-        }
-        .team-tab-btn {
-            flex: 1;
-            padding: 0.6rem 0;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            color: #4b5563;
+        /* Visual Team Selector */
+        .team-selector-btn {
+            border: 2px solid transparent;
             transition: all 0.2s ease-in-out;
         }
-        .team-tab-btn.active {
-            background-color: #ffffff;
-            color: #1e40af;
-            font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .team-selector-btn.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
         }
         .location-tag, .ot-tag {
             padding: 0.25rem 0.75rem;
@@ -103,61 +91,59 @@
 
         <!-- Main Assignment Logger Card -->
         <div class="card p-6 mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <!-- Date -->
-                <div>
-                    <label for="shift-date" class="block text-sm font-medium text-gray-700 mb-2">1. Date</label>
-                    <input type="date" id="shift-date" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <!-- Shift -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">2. Shift</label>
-                    <div id="shift-toggle" class="shift-toggle-bg" data-shift="Morning">
-                        <div class="shift-toggle-slider"></div>
-                        <div id="morning-shift-btn" onclick="selectShift('Morning')" class="shift-toggle-btn active">Morning</div>
-                        <div id="night-shift-btn" onclick="selectShift('Night')" class="shift-toggle-btn">Night</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Column: Primary Selections -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="shift-date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                        <input type="date" id="shift-date" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                </div>
-                 <!-- Team & Location -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">3. Team & Duty</label>
-                    <div class="team-tabs mb-4">
-                        <button id="sentry-tab" onclick="selectTeam('Sentry')" class="team-tab-btn active">Sentry Team</button>
-                        <button id="foyer-tab" onclick="selectTeam('Foyer')" class="team-tab-btn">Foyer Team</button>
-                        <button id="others-tab" onclick="selectTeam('Others')" class="team-tab-btn">Others</button>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Shift</label>
+                        <div id="shift-toggle" class="shift-toggle-bg" data-shift="Morning">
+                            <div class="shift-toggle-slider"></div>
+                            <div id="morning-shift-btn" onclick="selectShift('Morning')" class="shift-toggle-btn active">Morning</div>
+                            <div id="night-shift-btn" onclick="selectShift('Night')" class="shift-toggle-btn">Night</div>
+                        </div>
                     </div>
-                    <div id="location-selectors">
-                        <div id="sentry-location-wrapper">
-                            <select id="sentry-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option>E1</option><option>GUARD HOUSE</option><option>ECHO 3</option><option>PATROL 1</option><option>OE / STANDBY</option><option>ECHO 2</option><option>PATROL 2</option>
-                            </select>
-                        </div>
-                        <div id="foyer-location-wrapper" class="hidden">
-                            <select id="foyer-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option>VISITOR X-RAY</option><option>STAFF X-RAY</option><option>N1 (CNB DST)</option><option>OE / STANDBY</option><option>VERTICAL PROWLER</option>
-                            </select>
-                        </div>
-                        <div id="others-location-wrapper" class="hidden">
-                            <select id="others-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option>Training</option><option>AdHoc</option>
-                            </select>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                        <div class="grid grid-cols-3 gap-2">
+                             <button id="sentry-tab" onclick="selectTeam('Sentry')" class="team-selector-btn p-3 bg-gray-100 rounded-lg flex flex-col items-center justify-center active">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="text-sm font-semibold mt-1">Sentry</span>
+                            </button>
+                             <button id="foyer-tab" onclick="selectTeam('Foyer')" class="team-selector-btn p-3 bg-gray-100 rounded-lg flex flex-col items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>
+                                <span class="text-sm font-semibold mt-1">Foyer</span>
+                            </button>
+                             <button id="others-tab" onclick="selectTeam('Others')" class="team-selector-btn p-3 bg-gray-100 rounded-lg flex flex-col items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>
+                                <span class="text-sm font-semibold mt-1">Others</span>
+                            </button>
                         </div>
                     </div>
                 </div>
-                 <!-- Hours & OT -->
-                 <div class="md:col-span-2">
-                     <label class="block text-sm font-medium text-gray-700 mb-2">4. Hours & Overtime</label>
-                     <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                         <div class="flex-1">
-                            <label for="shift-hours" class="text-sm text-gray-600">Working Hours</label>
-                            <input type="number" id="shift-hours" value="12" class="w-full mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                         </div>
-                         <div class="flex items-center pt-5">
-                            <input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <label for="is-ot" class="ml-2 text-sm font-medium text-gray-700">Mark as Overtime (OT)</label>
+                <!-- Right Column: Contextual selections -->
+                <div class="space-y-4">
+                    <div>
+                         <label for="duty-location" class="block text-sm font-medium text-gray-700 mb-2">Duty / Location</label>
+                         <select id="duty-location" class="w-full p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                     <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-2">Hours & Overtime</label>
+                         <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                             <div class="flex-1">
+                                <label for="shift-hours" class="text-sm text-gray-600">Working Hours</label>
+                                <input type="number" id="shift-hours" value="12" class="w-full mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                             </div>
+                             <div class="flex items-center pt-5">
+                                <input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <label for="is-ot" class="ml-2 text-sm font-medium text-gray-700">OT</label>
+                             </div>
                          </div>
                      </div>
-                 </div>
+                </div>
             </div>
             
             <button onclick="logAssignment()" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg mt-6">
@@ -209,9 +195,11 @@
         let clearConfirmationTimeout = null;
         let displayedDate = new Date();
 
-        const SENTRY_LOCATIONS = ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2'];
-        const FOYER_LOCATIONS = ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'];
-        const OTHERS_LOCATIONS = ['Training', 'AdHoc'];
+        const DUTY_LOCATIONS = {
+            Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'],
+            Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'],
+            Others: ['Training', 'AdHoc']
+        };
         
         const LOCATION_COLORS = {
             'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }
@@ -248,7 +236,18 @@
             selectedTeam = team;
             ['sentry', 'foyer', 'others'].forEach(t => {
                 document.getElementById(`${t}-tab`).classList.toggle('active', t === team.toLowerCase());
-                document.getElementById(`${t}-location-wrapper`).classList.toggle('hidden', t !== team.toLowerCase());
+            });
+            updateDutyLocationDropdown();
+        }
+        
+        function updateDutyLocationDropdown() {
+            const dropdown = document.getElementById('duty-location');
+            dropdown.innerHTML = '';
+            DUTY_LOCATIONS[selectedTeam].forEach(loc => {
+                const option = document.createElement('option');
+                option.value = loc;
+                option.textContent = loc;
+                dropdown.appendChild(option);
             });
         }
 
@@ -256,7 +255,7 @@
             const dateValue = document.getElementById('shift-date').value;
             if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true);
             
-            const location = document.getElementById(`${selectedTeam.toLowerCase()}-location`).value;
+            const location = document.getElementById('duty-location').value;
             const hours = parseFloat(document.getElementById('shift-hours').value) || 12;
             const isOT = document.getElementById('is-ot').checked;
             const shiftTime = selectedShift === 'Morning' ? '08:00' : '20:00';
@@ -410,9 +409,9 @@
                     return `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td><td style="padding: 8px;">${percentage}</td></tr>`;
                 }).join('');
             };
-            const sentryData = calcFrequency(SENTRY_LOCATIONS, shiftsForMonth.filter(s => s.team === 'Sentry'));
-            const foyerData = calcFrequency(FOYER_LOCATIONS, shiftsForMonth.filter(s => s.team === 'Foyer'));
-            const othersData = calcFrequency(OTHERS_LOCATIONS, shiftsForMonth.filter(s => s.team === 'Others'));
+            const sentryData = calcFrequency(DUTY_LOCATIONS.Sentry, shiftsForMonth.filter(s => s.team === 'Sentry'));
+            const foyerData = calcFrequency(DUTY_LOCATIONS.Foyer, shiftsForMonth.filter(s => s.team === 'Foyer'));
+            const othersData = calcFrequency(DUTY_LOCATIONS.Others, shiftsForMonth.filter(s => s.team === 'Others'));
 
             const detailedLogBody = shiftsForMonth.map(s => {
                 const colorHex = LOCATION_COLORS[s.location]?.hex || '#ffffff';
