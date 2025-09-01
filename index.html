@@ -212,6 +212,15 @@
         function formatDateForInput(date) { return new Date(date).toISOString().split('T')[0]; }
         
         document.addEventListener('DOMContentLoaded', () => {
+            // Check for localStorage availability on startup
+            try {
+                localStorage.setItem('__test', 'test');
+                localStorage.removeItem('__test');
+            } catch (e) {
+                showToast('Local storage is disabled. Data will not be saved.', true);
+                console.error('LocalStorage is not available.', e);
+            }
+
             document.getElementById('shift-date').value = formatDateForInput(new Date());
             selectTeam('Sentry');
             selectShift('Morning');
@@ -267,12 +276,26 @@
             showToast('Assignment logged successfully!');
         }
 
-        function getShifts() { return JSON.parse(localStorage.getItem('shiftHistory')) || []; }
+        function getShifts() { 
+            try {
+                return JSON.parse(localStorage.getItem('shiftHistory')) || []; 
+            } catch (e) {
+                console.error("Error reading from local storage:", e);
+                return [];
+            }
+        }
         function saveAllShifts(shifts) {
              try {
-                shifts.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate) || b.shiftTime.localeCompare(a.shiftTime));
-                localStorage.setItem('shiftHistory', JSON.stringify(shifts));
-            } catch (e) { showToast("Error saving data.", true); }
+                if (!shifts) {
+                    console.error('Attempted to save null or undefined shifts array.');
+                    return;
+                }
+                const sortedShifts = [...shifts].sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate) || b.shiftTime.localeCompare(a.shiftTime));
+                localStorage.setItem('shiftHistory', JSON.stringify(sortedShifts));
+             } catch (e) { 
+                console.error("Failed to save shifts to local storage:", e);
+                showToast("Critical Error: Could not save data. Storage may be full or disabled.", true);
+            }
         }
         function saveShift(shiftData) {
             let shifts = getShifts();
