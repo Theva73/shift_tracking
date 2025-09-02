@@ -384,9 +384,6 @@
                 showToast('No data to report for this month.', true);
                 return;
             }
-            
-            toggleToolsView();
-            toggleLoggerView();
 
             shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate) || a.shiftTime.localeCompare(b.shiftTime));
 
@@ -417,6 +414,10 @@
                 printWindow.document.write(reportHTML);
                 printWindow.document.close();
                 printWindow.focus();
+
+                // Close the menus AFTER the window is successfully opened
+                toggleToolsView();
+                toggleLoggerView();
             } else {
                 showToast('Popup blocked! Please allow popups for this site.', true);
             }
