@@ -42,11 +42,8 @@
         .overlay:not(.hidden) .bottom-sheet {
             transform: translateY(0);
         }
-        #logger-card {
+        #logger-card, #tools-card {
              border-radius: 1.5rem 1.5rem 0 0;
-        }
-        #tools-card {
-            border-radius: 1.5rem 1.5rem 0 0;
         }
 
         /* Visual Team Selector */
@@ -99,8 +96,7 @@
                     <h1 class="text-xl font-bold text-gray-900">Log a New Shift</h1>
                      <button onclick="toggleToolsView()" class="text-gray-500 hover:text-gray-800 p-2 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                         </svg>
                     </button>
                 </div>
@@ -345,8 +341,14 @@
         function generateReport() {
             const allShifts = getShifts();
             let shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
-            if (shiftsForMonth.length === 0) return showToast('No data to report.', true);
+            if (shiftsForMonth.length === 0) {
+                showToast('No data to report for this month.', true);
+                return;
+            }
             
+            toggleToolsView();
+            toggleLoggerView();
+
             shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate) || a.shiftTime.localeCompare(b.shiftTime));
 
             const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -372,9 +374,13 @@
 
             const reportHTML = `<html><head><title>Shift Report - ${monthName}</title><style>body{font-family:sans-serif;margin:0;background-color:#f0f2f5;} .content{margin: 2cm;} h1,h2,h3{color:#333}h1{text-align:center}p{text-align:center;font-size:.9em;color:#666}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;} .print-controls{position:sticky;top:0;background-color:white;padding:1rem;border-bottom:1px solid #ddd;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);z-index:100;} .btn{padding:0.5rem 1rem;border:none;border-radius:0.375rem;font-weight:600;cursor:pointer;margin:0 0.5rem;} .btn-print{background-color:#2563eb;color:white;} .btn-back{background-color:#e5e7eb;color:black;} @media print{body{margin:1cm;background-color:white;} .print-controls{display:none;} .content{margin:0;}}</style></head><body><div class="print-controls"><button onclick="window.print()" class="btn btn-print">Print Report</button><button onclick="window.close()" class="btn btn-back">Back to Tracker</button></div><div class="content"><h1>Shift Assignment Report</h1><h2>${monthName}</h2><p>Generated on: ${new Date().toLocaleString()}</p><h2>Monthly Summary</h2><ul><li>Total Hours Logged: ${totalHours}</li><li>Overtime Hours Logged: ${otHours}</li></ul><h2>Duty Frequency Analysis</h2><h3>Sentry Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Team</h3><table><thead><tr><th>Location</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${foyerData}</tbody></table><h3>Others</h3><table><thead><tr><th>Duty</th><th>Frequency</th><th>Percentage</th></tr></thead><tbody>${othersData}</tbody></table><h2>Detailed Shift Log</h2><table><thead><tr><th>Date & Time</th><th>Shift</th><th>Team</th><th>Duty/Location</th><th>Hours</th><th>OT</th></tr></thead><tbody>${detailedLogBody}</tbody></table></div></body></html>`;
             const printWindow = window.open('', '', 'height=800,width=1000');
-            printWindow.document.write(reportHTML);
-            printWindow.document.close();
-            printWindow.focus();
+            if (printWindow) {
+                printWindow.document.write(reportHTML);
+                printWindow.document.close();
+                printWindow.focus();
+            } else {
+                showToast('Popup blocked! Please allow popups for this site.', true);
+            }
         }
     </script>
 </body>
