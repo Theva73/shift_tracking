@@ -432,8 +432,11 @@
 
         function generateReport() {
             const allShifts = getShifts();
-            const shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
+            let shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
             if (shiftsForMonth.length === 0) return showToast('No data for the selected month to report.', true);
+
+            // Sort shifts for the report in ascending chronological order
+            shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate) || a.shiftTime.localeCompare(b.shiftTime));
 
             const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             let totalHours = 0, otHours = 0;
@@ -476,3 +479,4 @@
     </script>
 </body>
 </html>
+
