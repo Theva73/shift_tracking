@@ -609,7 +609,18 @@
                 printWindow.document.write(reportHTML);
                 printWindow.document.close();
                 printWindow.focus();
-                toggleOverlay('tools-overlay');
+                
+                // --- FIX ---
+                // Close both overlays to ensure a clean state after generating the report.
+                const toolsOverlay = document.getElementById('tools-overlay');
+                if (!toolsOverlay.classList.contains('hidden')) {
+                    toggleOverlay('tools-overlay');
+                }
+                const loggerOverlay = document.getElementById('logger-overlay');
+                if (!loggerOverlay.classList.contains('hidden')) {
+                    toggleOverlay('logger-overlay');
+                }
+
             } else {
                 showToast('Popup blocked! Please allow popups for this site.', true);
             }
