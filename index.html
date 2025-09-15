@@ -298,7 +298,6 @@
                 
                 renderHistory();
             }, (error) => {
-                // --- MODIFICATION: Make the error log more prominent ---
                 console.error("PERMISSION ERROR: Error listening to shifts collection.", error);
                 showToast("Error fetching data.", true);
             });
@@ -306,7 +305,6 @@
         
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            // --- MODIFICATION: Log the Project ID on startup ---
             console.log("Attempting to connect to Firebase Project ID:", app.options.projectId);
             
             document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
@@ -491,6 +489,8 @@
             document.getElementById('month-display').textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
             const shiftsForMonth = allShifts.filter(s => {
+                // --- TIMEZONE FIX ---
+                // By adding 'T00:00:00', we treat the date string as local time, preventing timezone shifts.
                 const shiftDate = new Date(s.rawDate + 'T00:00:00');
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
@@ -509,13 +509,14 @@
             const shiftsHTML = shiftsForMonth.map(shift => {
                 const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                 const teamIcon = ICONS[shift.team.toLowerCase()] || ICONS.others;
+                // Use the same timezone-safe date object created above
                 const shiftDate = new Date(shift.rawDate + 'T00:00:00');
                 return `<div class="shift-entry border-b border-white/20 last:border-b-0">
                     <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')">
                         <div class="flex items-center gap-4 flex-grow">
                             <div class="flex-shrink-0 text-center w-14">
                                 <p class="font-bold text-lg">${shiftDate.getDate()}</p>
-                                <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                                <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleString('en-US', { weekday: 'short' })}</p>
                             </div>
                             <div class="pl-4 border-l border-white/20">${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}</div>
                             <span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span>
@@ -570,7 +571,10 @@
         }
 
         function generateReport() {
-            let shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
+            let shiftsForMonth = allShifts.filter(s => {
+                const shiftDate = new Date(s.rawDate + 'T00:00:00');
+                return new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth()
+            });
             if (shiftsForMonth.length === 0) {
                 showToast('No data to report for this month.', true);
                 return;
