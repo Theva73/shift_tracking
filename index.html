@@ -219,8 +219,8 @@
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, query, getDocs, setLogLevel, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, query, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Your web app's Firebase configuration ---
         const firebaseConfig = {
@@ -237,7 +237,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        setLogLevel('debug'); // Optional: for detailed logs
 
         // --- Global State ---
         let selectedShift = 'Morning';
@@ -247,7 +246,7 @@
         let allShifts = []; 
         let userId = null;
         let shiftsUnsubscribe = null; 
-        let editingShiftId = null; // To track which shift is being edited
+        let editingShiftId = null; 
 
         // --- Constants ---
         const DUTY_LOCATIONS = { Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], Others: ['Training', 'AdHoc', 'AL', 'MC'] };
@@ -261,9 +260,11 @@
                 userId = user.uid;
                 setupShiftListener();
             } else {
-                console.log("User is signed out, attempting to sign in anonymously.");
-                // Try to sign in again if the user is not signed in.
-                authenticateUser();
+                console.log("User is signed out.");
+                userId = null;
+                if (shiftsUnsubscribe) shiftsUnsubscribe(); 
+                allShifts = [];
+                renderHistory();
             }
         });
 
@@ -271,17 +272,11 @@
             if (auth.currentUser) {
                 console.log("User already authenticated.");
                 return;
-            }
+            };
             try {
-                 // The __initial_auth_token is for specific environments, we'll fall back to anonymous sign-in.
-                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously.");
-                }
+                await signInAnonymously(auth);
             } catch (error) {
-                console.error("Authentication failed:", error);
+                console.error("Anonymous authentication failed:", error);
                 showToast("Could not connect to the database.", true);
             }
         }
@@ -291,8 +286,7 @@
             if (shiftsUnsubscribe) shiftsUnsubscribe();
             if (!userId) return;
 
-            const appId = 'default-app-id'; // Simplified for your environment
-            const shiftsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/shifts`);
+            const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
             
             shiftsUnsubscribe = onSnapshot(shiftsCollectionRef, (querySnapshot) => {
                 const fetchedShifts = [];
@@ -304,13 +298,17 @@
                 
                 renderHistory();
             }, (error) => {
-                console.error("Error listening to shifts:", error);
+                // --- MODIFICATION: Make the error log more prominent ---
+                console.error("PERMISSION ERROR: Error listening to shifts collection.", error);
                 showToast("Error fetching data.", true);
             });
         }
         
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
+            // --- MODIFICATION: Log the Project ID on startup ---
+            console.log("Attempting to connect to Firebase Project ID:", app.options.projectId);
+            
             document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
             selectTeam('Sentry');
             selectShift('Morning');
@@ -425,15 +423,12 @@
             };
             
             try {
-                const appId = 'default-app-id'; // Simplified for your environment
                 if (editingShiftId) {
-                    // Update existing document
-                    const shiftDocRef = doc(db, `artifacts/${appId}/users/${userId}/shifts`, editingShiftId);
+                    const shiftDocRef = doc(db, `users/${userId}/shifts`, editingShiftId);
                     await updateDoc(shiftDocRef, shiftData);
                     showToast('Shift updated successfully!');
                 } else {
-                    // Create new document
-                    const shiftsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/shifts`);
+                    const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
                     await addDoc(shiftsCollectionRef, shiftData);
                     showToast('Assignment logged successfully!');
                 }
@@ -448,8 +443,7 @@
             event.stopPropagation();
             if (!userId) return showToast('Authentication error.', true);
             try {
-                const appId = 'default-app-id'; // Simplified for your environment
-                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/shifts`, shiftId));
+                await deleteDoc(doc(db, `users/${userId}/shifts`, shiftId));
                 showToast('Shift entry deleted.');
             } catch (error) {
                 console.error("Error deleting document: ", error);
@@ -464,8 +458,7 @@
                 if (!userId) return showToast('Authentication error.', true);
 
                 try {
-                    const appId = 'default-app-id'; // Simplified for your environment
-                    const shiftsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/shifts`);
+                    const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
                     const querySnapshot = await getDocs(shiftsCollectionRef);
                     const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
                     await Promise.all(deletePromises);
@@ -613,7 +606,6 @@
                 printWindow.document.close();
                 printWindow.focus();
                 
-                // Close overlays to ensure a clean state after generating the report.
                 const toolsOverlay = document.getElementById('tools-overlay');
                 if (!toolsOverlay.classList.contains('hidden')) {
                     toggleOverlay('tools-overlay');
@@ -630,7 +622,5 @@
     </script>
 </body>
 </html>
-
-
 
 
