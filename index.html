@@ -178,7 +178,6 @@
                     <p id="no-history" class="text-center text-gray-700 py-8 card glass-card rounded-xl">No shifts recorded for this month.</p>
                 </div>`;
             
-            // Re-add event listeners for the newly created elements
             document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
             document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
             renderHistory();
@@ -212,14 +211,10 @@
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
             updateUIForGuest(); 
-
-            // Auth listeners
             document.getElementById('auth-button').addEventListener('click', () => { auth.currentUser ? signOut(auth) : toggleOverlay('auth-overlay'); });
             document.getElementById('auth-cancel-btn').addEventListener('click', () => toggleOverlay('auth-overlay'));
             document.getElementById('signin-btn').addEventListener('click', handleSignIn);
             document.getElementById('signup-btn').addEventListener('click', handleSignUp);
-            
-            // Main app listeners
             document.getElementById('log-new-shift-btn').addEventListener('click', prepareNewShift);
             document.getElementById('logger-done-button').addEventListener('click', () => toggleOverlay('logger-overlay'));
             document.getElementById('tools-button').addEventListener('click', () => toggleOverlay('tools-overlay'));
@@ -227,8 +222,6 @@
             document.getElementById('save-assignment-btn').addEventListener('click', saveAssignment);
             document.getElementById('generate-report-btn').addEventListener('click', generateReport);
             document.getElementById('clear-history-btn').addEventListener('click', handleClearHistory);
-
-            // Form listeners
             document.getElementById('morning-shift-btn').addEventListener('click', () => selectShift('Morning'));
             document.getElementById('night-shift-btn').addEventListener('click', () => selectShift('Night'));
             document.getElementById('sentry-tab').addEventListener('click', () => selectTeam('Sentry'));
@@ -264,7 +257,7 @@
             }
         }
         
-        // --- ALL THE HELPER FUNCTIONS ---
+        // --- HELPER FUNCTIONS ---
         function toggleOverlay(overlayId) {
             const overlay = document.getElementById(overlayId);
             if (overlay.classList.contains('hidden')) {
@@ -282,18 +275,16 @@
         }
 
         function renderHistory() {
-            if (!document.getElementById('month-display')) return; // Exit if UI not ready
-            
+            if (!document.getElementById('month-display')) return;
             const year = displayedDate.getFullYear();
             const month = displayedDate.getMonth();
             document.getElementById('month-display').textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
             const shiftsForMonth = allShifts.filter(s => {
-                const shiftDate = new Date(s.rawDate + 'T00:00:00'); // Use T00:00:00 to avoid timezone issues
+                const shiftDate = new Date(s.rawDate + 'T00:00:00');
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
             
-            // Calculation and DOM updates for hours, etc.
             const totalHours = shiftsForMonth.reduce((acc, s) => acc + s.hours, 0);
             const otHours = shiftsForMonth.filter(s => s.isOT).reduce((acc, s) => acc + s.hours, 0);
             document.getElementById('total-hours').textContent = totalHours;
@@ -304,134 +295,46 @@
             noHistory.style.display = shiftsForMonth.length === 0 ? 'block' : 'none';
             historyList.style.display = shiftsForMonth.length > 0 ? 'block' : 'none';
             
-            if (shiftsForMonth.length === 0) {
-                historyList.innerHTML = '';
-                return;
-            }
+            if (shiftsForMonth.length === 0) { historyList.innerHTML = ''; return; }
 
             const shiftsHTML = shiftsForMonth.map(shift => {
                 const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                 const teamIcon = ICONS[shift.team.toLowerCase()] || ICONS.others;
                 const shiftDate = new Date(shift.rawDate + 'T00:00:00');
-                return `<div class="shift-entry border-b border-white/20 last:border-b-0">
-                    <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')">
-                        <div class="flex items-center gap-4 flex-grow"><div class="flex-shrink-0 text-center w-14"><p class="font-bold text-lg">${shiftDate.getDate()}</p><p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p></div><div class="pl-4 border-l border-white/20">${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}</div><span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></div>
-                        <div class="flex items-center gap-4">${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : '<span class="w-10"></span>'}<svg id="chevron-${shift.id}" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></div>
-                    </div>
-                    <div id="details-${shift.id}" class="hidden p-3 pt-0 pl-24 bg-black/5">
-                        <div class="space-y-2 text-sm">
-                            <p class="font-medium text-gray-700">${shiftDate.toLocaleDateString('en-US', { weekday: 'long' })}</p><p class="font-semibold">${shift.shiftTime}</p><div class="flex items-center text-gray-600"><span>${shift.hours} hrs</span><span class="mx-2">|</span>${teamIcon}<span>${shift.team === 'Others' ? 'Duty' : shift.team + ' Team'}</span></div>
-                            <div class="flex items-center gap-4 mt-2"><button onclick="prepareEditShift('${shift.id}')" class="text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>Edit</button><button onclick="deleteShift('${shift.id}')" class="text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete</button></div>
-                        </div>
-                    </div>
-                </div>`;
+                return `<div class="shift-entry border-b border-white/20 last:border-b-0"><div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')"><div class="flex items-center gap-4 flex-grow"><div class="flex-shrink-0 text-center w-14"><p class="font-bold text-lg">${shiftDate.getDate()}</p><p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p></div><div class="pl-4 border-l border-white/20">${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}</div><span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></div><div class="flex items-center gap-4">${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : '<span class="w-10"></span>'}<svg id="chevron-${shift.id}" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></div></div><div id="details-${shift.id}" class="hidden p-3 pt-0 pl-24 bg-black/5"><div class="space-y-2 text-sm"><p class="font-medium text-gray-700">${shiftDate.toLocaleDateString('en-US', { weekday: 'long' })}</p><p class="font-semibold">${shift.shiftTime}</p><div class="flex items-center text-gray-600"><span>${shift.hours} hrs</span><span class="mx-2">|</span>${teamIcon}<span>${shift.team === 'Others' ? 'Duty' : shift.team + ' Team'}</span></div><div class="flex items-center gap-4 mt-2"><button onclick="prepareEditShift('${shift.id}')" class="text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>Edit</button><button onclick="deleteShift('${shift.id}')" class="text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete</button></div></div></div></div>`;
             }).join('');
             historyList.innerHTML = `<div class="card glass-card rounded-xl overflow-hidden">${shiftsHTML}</div>`;
         }
         
-        // These functions need to be on the window object to be called from HTML onclick attributes
         window.toggleShiftDetails = (shiftId) => { document.getElementById(`details-${shiftId}`).classList.toggle('hidden'); document.getElementById(`chevron-${shiftId}`).classList.toggle('rotate-180'); };
-        window.prepareEditShift = (shiftId) => {
-            event.stopPropagation();
-            const shiftToEdit = allShifts.find(s => s.id === shiftId);
-            if (!shiftToEdit) return showToast('Could not find shift to edit.', true);
-            editingShiftId = shiftId;
-            document.getElementById('shift-date').value = shiftToEdit.rawDate;
-            selectShift(shiftToEdit.shift);
-            selectTeam(shiftToEdit.team);
-            setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0);
-            document.getElementById('shift-hours').value = shiftToEdit.hours;
-            document.getElementById('is-ot').checked = shiftToEdit.isOT;
-            document.getElementById('logger-title').textContent = 'Edit Shift';
-            document.getElementById('save-assignment-btn').textContent = 'Update Shift';
-            toggleOverlay('logger-overlay');
-        };
-        window.deleteShift = async (shiftId) => {
-            event.stopPropagation();
-            if (!userId) return showToast('Authentication error.', true);
-            try {
-                await deleteDoc(doc(db, `users/${userId}/shifts`, shiftId));
-                showToast('Shift entry deleted.');
-            } catch (error) {
-                console.error("Error deleting document: ", error);
-                showToast('Failed to delete shift.', true);
-            }
-        };
+        window.prepareEditShift = (shiftId) => { event.stopPropagation(); const shiftToEdit = allShifts.find(s => s.id === shiftId); if (!shiftToEdit) return; editingShiftId = shiftId; document.getElementById('shift-date').value = shiftToEdit.rawDate; selectShift(shiftToEdit.shift); selectTeam(shiftToEdit.team); setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0); document.getElementById('shift-hours').value = shiftToEdit.hours; document.getElementById('is-ot').checked = shiftToEdit.isOT; document.getElementById('logger-title').textContent = 'Edit Shift'; document.getElementById('save-assignment-btn').textContent = 'Update Shift'; toggleOverlay('logger-overlay'); };
+        window.deleteShift = async (shiftId) => { event.stopPropagation(); if (!userId) return; try { await deleteDoc(doc(db, `users/${userId}/shifts`, shiftId)); showToast('Shift entry deleted.'); } catch (error) { console.error("Error deleting document: ", error); showToast('Failed to delete shift.', true); } };
 
-        function prepareNewShift() {
-            editingShiftId = null;
-            document.getElementById('shift-form').reset();
-            document.getElementById('logger-title').textContent = 'Log a New Shift';
-            document.getElementById('save-assignment-btn').textContent = 'Log Assignment';
-            document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
-            selectShift('Morning');
-            selectTeam('Sentry');
-            toggleOverlay('logger-overlay');
+        function prepareNewShift() { editingShiftId = null; document.getElementById('shift-form').reset(); document.getElementById('logger-title').textContent = 'Log a New Shift'; document.getElementById('save-assignment-btn').textContent = 'Log Assignment'; document.getElementById('shift-date').value = new Date().toISOString().split('T')[0]; selectShift('Morning'); selectTeam('Sentry'); toggleOverlay('logger-overlay'); }
+        async function saveAssignment() { const dateValue = document.getElementById('shift-date').value; if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true); if (!userId) return showToast('You must be signed in.', true); const shiftData = { rawDate: dateValue, shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00', shift: selectedShift, team: selectedTeam, location: document.getElementById('duty-location').value, hours: parseFloat(document.getElementById('shift-hours').value) || 12, isOT: document.getElementById('is-ot').checked }; try { if (editingShiftId) { await updateDoc(doc(db, `users/${userId}/shifts`, editingShiftId), shiftData); showToast('Shift updated!'); } else { await addDoc(collection(db, `users/${userId}/shifts`), shiftData); showToast('Assignment logged!'); } toggleOverlay('logger-overlay'); } catch (error) { console.error("Error saving document: ", error); showToast('Failed to save shift.', true); } }
+        function selectShift(shift) { selectedShift = shift; const [morningBtn, nightBtn] = [document.getElementById('morning-shift-btn'), document.getElementById('night-shift-btn')]; morningBtn.classList.toggle('bg-white', shift === 'Morning'); morningBtn.classList.toggle('text-blue-700', shift === 'Morning'); nightBtn.classList.toggle('bg-white', shift === 'Night'); nightBtn.classList.toggle('text-blue-700', shift === 'Night'); }
+        function selectTeam(team) { selectedTeam = team; ['sentry', 'foyer', 'others'].forEach(t => document.getElementById(`${t}-tab`).classList.toggle('active', t === team.toLowerCase())); updateDutyLocationDropdown(); }
+        function updateDutyLocationDropdown() { const dropdown = document.getElementById('duty-location'); dropdown.innerHTML = ''; DUTY_LOCATIONS[selectedTeam].forEach(loc => { const option = new Option(loc, loc); dropdown.appendChild(option); }); }
+        function showToast(message, isError = false) { const toast = document.getElementById('toast'); toast.textContent = message; toast.className = `fixed bottom-24 right-5 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300 z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`; toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)'; }, 3000); }
+        async function handleClearHistory() { const clearBtn = document.getElementById('clear-history-btn'); if (clearBtn.dataset.confirming) { clearTimeout(clearConfirmationTimeout); if (!userId) return showToast('Auth error.', true); try { const shiftsCollectionRef = collection(db, `users/${userId}/shifts`); const querySnapshot = await getDocs(shiftsCollectionRef); const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref)); await Promise.all(deletePromises); showToast('History cleared.'); resetClearButton(); toggleOverlay('tools-overlay'); } catch (error) { showToast('Failed to clear history.', true); } } else { clearBtn.dataset.confirming = 'true'; clearBtn.textContent = 'Confirm Clear?'; clearBtn.classList.replace('bg-red-600', 'bg-yellow-500'); clearBtn.classList.replace('hover:bg-red-700', 'hover:bg-yellow-600'); clearConfirmationTimeout = setTimeout(resetClearButton, 3500); } }
+        function resetClearButton() { const clearBtn = document.getElementById('clear-history-btn'); clearBtn.dataset.confirming = ''; clearBtn.textContent = 'Clear History'; clearBtn.classList.replace('bg-yellow-500', 'bg-red-600'); clearBtn.classList.replace('hover:bg-yellow-600', 'hover:bg-red-700'); }
+        function generateReport() {
+            let shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
+            if (shiftsForMonth.length === 0) { showToast('No data to report for this month.', true); return; }
+            shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
+            const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            let totalHours = 0, otHours = 0; shiftsForMonth.forEach(s => { totalHours += s.hours; if (s.isOT) otHours += s.hours; });
+            const calcFrequency = (locations, shiftList) => { const counts = new Map(locations.map(loc => [loc, 0])); shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1)); return Array.from(counts.entries()).map(([loc, count]) => `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td></tr>`).join(''); };
+            const sentryData = calcFrequency(DUTY_LOCATIONS.Sentry, shiftsForMonth.filter(s => s.team === 'Sentry'));
+            const foyerData = calcFrequency(DUTY_LOCATIONS.Foyer, shiftsForMonth.filter(s => s.team === 'Foyer'));
+            const othersData = calcFrequency(DUTY_LOCATIONS.Others, shiftsForMonth.filter(s => s.team === 'Others'));
+            const detailedLogBody = shiftsForMonth.map(s => `<tr style="border-left: 5px solid ${LOCATION_COLORS[s.location]?.hex || '#ffffff'};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.location}</td><td style="padding: 8px;">${s.hours}</td></tr>`).join('');
+            const reportHTML = `<html><head><title>Report - ${monthName}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;}</style></head><body><h1>Shift Report</h1><h2>${monthName}</h2><h3>Summary</h3><ul><li>Total Hours: ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul><h3>Sentry Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${foyerData}</tbody></table><h3>Detailed Log</h3><table><thead><tr><th>Date & Time</th><th>Location</th><th>Hours</th></tr></thead><tbody>${detailedLogBody}</tbody></table></body></html>`;
+            const reportWindow = window.open('');
+            reportWindow.document.write(reportHTML);
+            reportWindow.document.close();
+            toggleOverlay('tools-overlay');
         }
-
-        async function saveAssignment() {
-            const dateValue = document.getElementById('shift-date').value;
-            if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true);
-            if (!userId) return showToast('You must be signed in to save data.', true);
-
-            const shiftData = { rawDate: dateValue, shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00', shift: selectedShift, team: selectedTeam, location: document.getElementById('duty-location').value, hours: parseFloat(document.getElementById('shift-hours').value) || 12, isOT: document.getElementById('is-ot').checked };
-            
-            try {
-                if (editingShiftId) {
-                    const shiftDocRef = doc(db, `users/${userId}/shifts`, editingShiftId);
-                    await updateDoc(shiftDocRef, shiftData);
-                    showToast('Shift updated successfully!');
-                } else {
-                    const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
-                    await addDoc(shiftsCollectionRef, shiftData);
-                    showToast('Assignment logged successfully!');
-                }
-                toggleOverlay('logger-overlay');
-            } catch (error) {
-                console.error("Error saving document: ", error);
-                showToast('Failed to save shift. Please try again.', true);
-            }
-        }
-
-        function selectShift(shift) {
-            selectedShift = shift;
-            const [morningBtn, nightBtn] = [document.getElementById('morning-shift-btn'), document.getElementById('night-shift-btn')];
-            morningBtn.classList.toggle('bg-white', shift === 'Morning');
-            morningBtn.classList.toggle('text-blue-700', shift === 'Morning');
-            nightBtn.classList.toggle('bg-white', shift === 'Night');
-            nightBtn.classList.toggle('text-blue-700', shift === 'Night');
-        }
-        
-        function selectTeam(team) {
-            selectedTeam = team;
-            ['sentry', 'foyer', 'others'].forEach(t => document.getElementById(`${t}-tab`).classList.toggle('active', t === team.toLowerCase()));
-            updateDutyLocationDropdown();
-        }
-        
-        function updateDutyLocationDropdown() {
-            const dropdown = document.getElementById('duty-location');
-            dropdown.innerHTML = '';
-            DUTY_LOCATIONS[selectedTeam].forEach(loc => {
-                const option = new Option(loc, loc);
-                dropdown.appendChild(option);
-            });
-        }
-        
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `fixed bottom-24 right-5 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300 z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
-            toast.style.opacity = '1';
-            toast.style.transform = 'translateY(0)';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px)';
-            }, 3000);
-        }
-
-        async function handleClearHistory() { /* ... same as before ... */ }
-        function resetClearButton() { /* ... same as before ... */ }
-        function generateReport() { /* ... same as before ... */ }
     </script>
 </body>
 </html>
