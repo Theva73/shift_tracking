@@ -254,26 +254,35 @@
         const ICONS = { morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`, others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>` };
         
         // --- Authentication ---
+        // --- LOGIC FIX: The main change is here ---
         onAuthStateChanged(auth, user => {
-            if (user) {
-                console.log("User is signed in with UID:", user.uid);
+            if (user && user.uid !== userId) { // Check if user exists and is a NEW user
+                console.log("Auth state changed. New user signed in with UID:", user.uid);
                 userId = user.uid;
-                setupShiftListener();
-            } else {
+                setupShiftListener(); // NOW we set up the listener
+            } else if (!user) {
                 console.log("User is signed out.");
                 userId = null;
-                if (shiftsUnsubscribe) shiftsUnsubscribe(); 
+                if (shiftsUnsubscribe) {
+                    shiftsUnsubscribe(); 
+                    shiftsUnsubscribe = null;
+                }
                 allShifts = [];
                 renderHistory();
             }
         });
 
         async function authenticateUser() {
-            if (auth.currentUser) {
-                console.log("User already authenticated.");
+             if (auth.currentUser) {
+                console.log("User already authenticated on page load.");
+                if (auth.currentUser.uid !== userId) {
+                    userId = auth.currentUser.uid;
+                    setupShiftListener();
+                }
                 return;
             };
             try {
+                console.log("Attempting anonymous sign-in...");
                 await signInAnonymously(auth);
             } catch (error) {
                 console.error("Anonymous authentication failed:", error);
@@ -283,9 +292,10 @@
         
         // --- Firestore Data Listener ---
         function setupShiftListener() {
-            if (shiftsUnsubscribe) shiftsUnsubscribe();
+            if (shiftsUnsubscribe) shiftsUnsubscribe(); // Unsubscribe from old listener if it exists
             if (!userId) return;
 
+            console.log(`Setting up Firestore listener for user: ${userId}`);
             const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
             
             shiftsUnsubscribe = onSnapshot(shiftsCollectionRef, (querySnapshot) => {
@@ -294,6 +304,7 @@
                     fetchedShifts.push({ id: doc.id, ...doc.data() });
                 });
                 
+                console.log(`Firestore snapshot received: ${fetchedShifts.length} total shifts found.`);
                 allShifts = fetchedShifts.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate) || b.shiftTime.localeCompare(a.shiftTime));
                 
                 renderHistory();
@@ -307,11 +318,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log("Attempting to connect to Firebase Project ID:", app.options.projectId);
             
+            // Initialize UI components
             document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
             selectTeam('Sentry');
             selectShift('Morning');
             renderHistory();
 
+            // Set up button clicks
             document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
             document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
             document.getElementById('morning-shift-btn').addEventListener('click', () => selectShift('Morning'));
@@ -327,6 +340,7 @@
             document.getElementById('generate-report-btn').addEventListener('click', generateReport);
             document.getElementById('clear-history-btn').addEventListener('click', handleClearHistory);
 
+            // Start the authentication process
             authenticateUser();
         });
         
@@ -489,11 +503,11 @@
             document.getElementById('month-display').textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
             const shiftsForMonth = allShifts.filter(s => {
-                // --- TIMEZONE FIX ---
-                // By adding 'T00:00:00', we treat the date string as local time, preventing timezone shifts.
                 const shiftDate = new Date(s.rawDate + 'T00:00:00');
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
+
+            console.log(`Rendering history for ${displayedDate.toLocaleDateString()}: ${shiftsForMonth.length} shifts found for this month.`);
 
             const totalHours = shiftsForMonth.reduce((acc, s) => acc + s.hours, 0);
             const otHours = shiftsForMonth.filter(s => s.isOT).reduce((acc, s) => acc + s.hours, 0);
@@ -509,14 +523,13 @@
             const shiftsHTML = shiftsForMonth.map(shift => {
                 const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                 const teamIcon = ICONS[shift.team.toLowerCase()] || ICONS.others;
-                // Use the same timezone-safe date object created above
                 const shiftDate = new Date(shift.rawDate + 'T00:00:00');
                 return `<div class="shift-entry border-b border-white/20 last:border-b-0">
                     <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')">
                         <div class="flex items-center gap-4 flex-grow">
                             <div class="flex-shrink-0 text-center w-14">
                                 <p class="font-bold text-lg">${shiftDate.getDate()}</p>
-                                <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleString('en-US', { weekday: 'short' })}</p>
+                                <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p>
                             </div>
                             <div class="pl-4 border-l border-white/20">${shift.shift === 'Morning' ? ICONS.morning : ICONS.night}</div>
                             <span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span>
