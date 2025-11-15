@@ -252,14 +252,8 @@
         let clearConfirmationTimeout = null;
         
         // --- CONSTANTS ---
-        // ### MODIFICATION START: Added 'OT' to Others array ###
         const DUTY_LOCATIONS = { Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC'] };
-        // ### MODIFICATION END ###
-        
-        // ### MODIFICATION START: Added 'OT' to LOCATION_COLORS ###
         const LOCATION_COLORS = { 'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' } };
-        // ### MODIFICATION END ###
-        
         const ICONS = { morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`, others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>` };
         const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -492,13 +486,14 @@
                 } else if (shift.shift === 'Night') {
                     shiftIcon = ICONS.night;
                 } else {
-                    shiftIcon = ICONS.others; // Use 'others' icon for AdHoc, Training etc.
+                    // This else case should ideally not be hit with the new logic, but good as a fallback.
+                    shiftIcon = ICONS.others;
                 }
 
                 const shiftDate = new Date(shift.rawDate + 'T00:00:00');
                 return `<div class="shift-entry border-b border-white/20 last:border-b-0"><div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')"><div class="flex items-center gap-4 flex-grow"><div class="flex-shrink-0 text-center w-14"><p class="font-bold text-lg">${shiftDate.getDate()}</p><p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p></div><div class="pl-4 border-l border-white/20">${shiftIcon}</div><span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></div><div class="flex items-center gap-4">${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : '<span class="w-10"></span>'}<svg id="chevron-${shift.id}" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></div></div><div id="details-${shift.id}" class="hidden p-3 pt-0 pl-24 bg-black/5"><div class="space-y-2 text-sm"><p class="font-medium text-gray-700">${shiftDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
                 
-                <p class="font-semibold">${shift.team === 'Others' ? shift.shift : shift.shiftTime}</p>
+                <p class="font-semibold">${shift.shift} (${shift.shiftTime})</p>
                 
                 <div class="flex items-center text-gray-600"><span>${shift.hours} hrs</span><span class="mx-2">|</span>${ICONS[shift.team.toLowerCase()]}<span>${shift.team === 'Others' ? 'Duty' : shift.team + ' Team'}</span></div><div class="flex items-center gap-4 mt-2"><button onclick="prepareEditShift('${shift.id}')" class="text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>Edit</button><button onclick="deleteShift('${shift.id}')" class="text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete</button></div></div></div></div>`;
             }).join('');
@@ -518,15 +513,8 @@
             document.getElementById('shift-date').value = shiftToEdit.rawDate; 
             
             selectTeam(shiftToEdit.team); // This will show/hide the M/N toggle
-            
-            if (shiftToEdit.team === 'Others') {
-                // No M/N shift to select, just set location
-                setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0); 
-            } else {
-                // Select M/N shift
-                selectShift(shiftToEdit.shift);
-                setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0); 
-            }
+            selectShift(shiftToEdit.shift); // Set M/N toggle
+            setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0); 
             
             document.getElementById('shift-hours').value = shiftToEdit.hours; 
             document.getElementById('is-ot').checked = shiftToEdit.isOT; 
@@ -551,13 +539,12 @@
             
             if (shiftType === 'OFF_DAY_OT') {
                 selectTeam('Others');
-                // ### MODIFICATION START: Pre-select "OT" instead of "AdHoc" ###
+                selectShift('Morning'); // Default to Morning for OT
                 setTimeout(() => { 
                     document.getElementById('duty-location').value = 'OT'; 
                     document.getElementById('is-ot').checked = true;
-                    document.getElementById('shift-hours').value = 0;
+                    document.getElementById('shift-hours').value = 0; // Set to 0 so user can input hours
                 }, 0);
-                // ### MODIFICATION END ###
             } else if (shiftType) { // 'Morning' or 'Night'
                 selectTeam('Sentry'); // Default to Sentry
                 selectShift(shiftType);
@@ -574,46 +561,31 @@
         async function saveAssignment() {
             const dateValue = document.getElementById('shift-date').value;
             
-            // Ensure selectedShift is set even if toggle is hidden
-            if (selectedTeam === 'Others') {
-                selectedShift = 'Morning'; // Assign a default internal value, it won't be used for the 'shift' field
-            }
-            
             if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true); 
             if (!userId) return showToast('You must be signed in.', true); 
             
-            let shiftData;
             const location = document.getElementById('duty-location').value;
-            const hours = parseFloat(document.getElementById('shift-hours').value); // Allow 0 hours, or any number
+            const hours = parseFloat(document.getElementById('shift-hours').value);
             const isOT = document.getElementById('is-ot').checked;
 
             if (isNaN(hours)) {
                 return showToast('Please enter valid working hours.', true);
             }
             
-            if (selectedTeam === 'Others') {
-                // For "Others", the location *is* the shift.
-                shiftData = { 
-                    rawDate: dateValue, 
-                    shiftTime: `${hours}h`, // Use hours as the "time"
-                    shift: location, // Use location (e.g., "AdHoc", "OT") as the "shift"
-                    team: selectedTeam, 
-                    location: location, 
-                    hours: hours, 
-                    isOT: isOT 
-                };
-            } else {
-                // For "Sentry" and "Foyer", use standard M/N logic
-                shiftData = { 
-                    rawDate: dateValue, 
-                    shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00', 
-                    shift: selectedShift, 
-                    team: selectedTeam, 
-                    location: location, 
-                    hours: hours, 
-                    isOT: isOT 
-                };
-            }
+            // ### MODIFICATION START: Unified shiftData object ###
+            // Logic is now the same for all teams.
+            // 'shift' is "Morning" or "Night"
+            // 'location' is "E1", "Foyer", "OT", "AdHoc", etc.
+            const shiftData = { 
+                rawDate: dateValue, 
+                shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00', // Store standard M/N time
+                shift: selectedShift, // "Morning" or "Night"
+                team: selectedTeam, // "Sentry", "Foyer", or "Others"
+                location: location, // "E1", "OT", "Training", etc.
+                hours: hours, 
+                isOT: isOT 
+            };
+            // ### MODIFICATION END ###
 
             try { 
                 if (editingShiftId) { 
@@ -632,18 +604,20 @@
 
         function selectShift(shift) { selectedShift = shift; const [morningBtn, nightBtn] = [document.getElementById('morning-shift-btn'), document.getElementById('night-shift-btn')]; morningBtn.classList.toggle('bg-white', shift === 'Morning'); morningBtn.classList.toggle('text-blue-700', shift === 'Morning'); nightBtn.classList.toggle('bg-white', shift === 'Night'); nightBtn.classList.toggle('text-blue-700', shift === 'Night'); }
         
+        // ### MODIFICATION START: Remove logic to hide shift toggle ###
         function selectTeam(team) {
             selectedTeam = team;
             ['sentry', 'foyer', 'others'].forEach(t => document.getElementById(`${t}-tab`).classList.toggle('active', t === team.toLowerCase()));
             updateDutyLocationDropdown();
 
-            const shiftToggle = document.getElementById('shift-toggle-container');
-            if (team === 'Others') {
-                shiftToggle.classList.add('hidden');
-            } else {
-                shiftToggle.classList.remove('hidden');
-            }
+            // const shiftToggle = document.getElementById('shift-toggle-container');
+            // if (team === 'Others') {
+            //     shiftToggle.classList.add('hidden');
+            // } else {
+            //     shiftToggle.classList.remove('hidden');
+            // }
         }
+        // ### MODIFICATION END ###
 
         function updateDutyLocationDropdown() { const dropdown = document.getElementById('duty-location'); dropdown.innerHTML = ''; DUTY_LOCATIONS[selectedTeam].forEach(loc => { const option = new Option(loc, loc); dropdown.appendChild(option); }); }
         function showToast(message, isError = false) { const toast = document.getElementById('toast'); toast.textContent = message; toast.className = `fixed bottom-24 right-5 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300 z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`; toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)'; }, 3000); }
@@ -803,7 +777,8 @@
                     } else if (loggedShift.shift === 'Night') {
                         shiftIcon = ICONS.night;
                     } else {
-                        shiftIcon = ICONS.others; // Use 'others' icon for AdHoc, Training etc.
+                        // Fallback for older data before this change
+                        shiftIcon = ICONS.others;
                     }
 
                     cellHTML += `
