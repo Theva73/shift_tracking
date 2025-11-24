@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Tracker</title>
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    
+    <!-- UPDATED: Meta tags for Add to Home Screen (PWA/Mobile Shortcut) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Shift Tracker">
+    <!-- Using the RAW URL from GitHub for the custom icon: -->
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Theva73/shift_tracking/main/apple-touch-icon.png">
+    <link rel="icon" href="https://raw.githubusercontent.com/Theva73/shift_tracking/main/apple-touch-icon.png">
+    <!-- END UPDATED METADATA -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -331,7 +340,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
           projectId: "shift-tracker-b7879",
           // Use the default storage bucket for this project.  As of October 30, 2024
           // Firebase uses the `PROJECT_ID.firebasestorage.app` format for new
-          // buckets, while older projects use `PROJECT_ID.appspot.com`https://firebase.google.com/docs/storage/web/start#:~:text=Note%3A%20Starting%20October%2030%2C%202024%2C,Learn%20more%20in%20the%20FAQs.
+          // buckets, while older projects use `PROJECT_ID.appspot.com`https://firebase.google.com/docs/storage/web/start#:~:text=Note%3A%20Starting%20October%2030%2C%202024%2C%20Firebase%20uses%20the%20`PROJECT_ID.firebasestorage.app`%20format%20for%20new%20buckets%2C%20while%20older%20projects%20use%20`PROJECT_ID.appspot.com`.
           // This project was created with the newer format, so keep the
           // firebasestorage.app domain.
           storageBucket: "shift-tracker-b7879.firebasestorage.app",
