@@ -19,7 +19,7 @@
         .overlay.hidden { pointer-events: none; }
         .bottom-sheet { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); }
         .overlay:not(.hidden) .bottom-sheet { transform: translateY(0); }
-        #logger-card, #tools-card, #auth-card, #calendar-card, #pattern-card { border-radius: 1.5rem 1.5rem 0 0; }
+        #logger-card, #tools-card, #auth-card, #calendar-card, #team-manager-card, #edit-team-pattern-card { border-radius: 1.5rem 1.5rem 0 0; }
         .glass-input { background-color: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.3); }
         .team-selector-btn { border: 2px solid transparent; background-color: rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
         .team-selector-btn.active { border-color: #3b82f6; background-color: rgba(255, 255, 255, 0.7); }
@@ -82,6 +82,47 @@
              justify-content: center;
              align-items: center;
         }
+
+        /* Pattern Editor Styles */
+        .pattern-cell {
+            height: 6rem;
+            cursor: pointer;
+            transition: all 0.1s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .pattern-cell:hover {
+            transform: scale(1.03);
+        }
+        .pattern-cell-M {
+            background-color: #ffedd5; /* Amber 100 */
+            color: #b45309; /* Amber 700 */
+            border-color: #f59e0b;
+        }
+        .pattern-cell-N {
+            background-color: #e0e7ff; /* Indigo 100 */
+            color: #4338ca; /* Indigo 700 */
+            border-color: #6366f1;
+        }
+        .pattern-cell-OFF {
+            background-color: #d1fae5; /* Emerald 100 */
+            color: #065f46; /* Emerald 700 */
+            border-color: #10b981;
+        }
+        .pattern-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #4b5563; /* Gray 600 */
+        }
+        .pattern-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -103,7 +144,7 @@
         </div>
     </div>
     
-    <!-- Auth Overlay -->
+    <!-- Auth Overlay (Modified for Team Selection and Location Filter during Sign Up) -->
     <div id="auth-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
         <div id="auth-card" class="glass-card w-full max-w-md bottom-sheet p-6">
             <h2 class="text-2xl font-bold text-center mb-6">Sign In or Create Account</h2>
@@ -111,7 +152,26 @@
             <div class="space-y-4">
                 <input type="email" id="email-input" placeholder="Email" class="glass-input w-full p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
                 <input type="password" id="password-input" placeholder="Password" class="glass-input w-full p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                
+                <!-- NEW: Sign-up specific fields -->
+                <div id="signup-fields" class="space-y-4 hidden">
+                    <!-- Location Filter Selection -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-gray-700">Filter Location Access</label>
+                        <div class="flex space-x-2">
+                            <button type="button" data-location-filter="Sentry" class="filter-btn flex-1 p-2 rounded-lg border border-gray-300 bg-white/50 hover:bg-white/80 text-sm font-semibold text-gray-600 active:bg-blue-100 active:border-blue-500 active:text-blue-700">Sentry</button>
+                            <button type="button" data-location-filter="Foyer" class="filter-btn flex-1 p-2 rounded-lg border border-gray-300 bg-white/50 hover:bg-white/80 text-sm font-semibold text-gray-600 active:bg-blue-100 active:border-blue-500 active:text-blue-700">Foyer</button>
+                            <button type="button" data-location-filter="Both" class="filter-btn flex-1 p-2 rounded-lg border border-gray-300 bg-white/50 hover:bg-white/80 text-sm font-semibold text-gray-600 active:bg-blue-100 active:border-blue-500 active:text-blue-700 active">Both</button>
+                        </div>
+                        <input type="hidden" id="signup-location-filter" value="Both">
+                        <p class="text-xs text-gray-500 mt-1">This sets which teams/locations are visible to you.</p>
+                    </div>
+
+                    <!-- Placeholder for Team Pattern (Deferred - users set this later) -->
+                    <p class="text-sm font-medium text-gray-600">You can set your rotation pattern later in Advanced Tools.</p>
+                </div>
             </div>
+            
             <div class="grid grid-cols-2 gap-4 mt-6">
                 <button id="signin-btn" class="btn bg-blue-600 text-white font-bold py-3 rounded-lg">Sign In</button>
                 <button id="signup-btn" class="btn bg-green-600 text-white font-bold py-3 rounded-lg">Sign Up</button>
@@ -143,7 +203,12 @@
                             </div>
                         </div>
 
-                        <div><label class="block text-sm font-medium mb-2">Team</label><div class="grid grid-cols-3 gap-2"><button type="button" id="sentry-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center active"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Sentry</span></button><button type="button" id="foyer-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Foyer</span></button><button type="button" id="others-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg><span class="text-sm font-semibold mt-1">Others</span></button></div></div></div><div class="space-y-4"><div><label for="duty-location" class="block text-sm font-medium mb-2">Duty / Location</label><select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select></div><div><label class="block text-sm font-medium mb-2">Hours & Overtime</label><div class="flex items-center gap-4 p-3 bg-white/20 rounded-lg"><div class="flex-1"><label for="shift-hours" class="text-sm">Working Hours</label><input type="number" id="shift-hours" value="12" class="glass-input w-full mt-1 p-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></div><div class="flex items-center pt-5"><input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white/50"><label for="is-ot" class="ml-2 text-sm font-medium">OT</label></div></div></div></div></div></div>
+                        <div><label class="block text-sm font-medium mb-2">Team</label><div class="grid grid-cols-3 gap-2">
+                            <!-- Team Tabs are filtered here in JS: -->
+                            <button type="button" id="sentry-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center active"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Sentry</span></button>
+                            <button type="button" id="foyer-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Foyer</span></button>
+                            <button type="button" id="others-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg><span class="text-sm font-semibold mt-1">Others</span></button>
+                        </div></div></div><div class="space-y-4"><div><label for="duty-location" class="block text-sm font-medium mb-2">Duty / Location</label><select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select></div><div><label class="block text-sm font-medium mb-2">Hours & Overtime</label><div class="flex items-center gap-4 p-3 bg-white/20 rounded-lg"><div class="flex-1"><label for="shift-hours" class="text-sm">Working Hours</label><input type="number" id="shift-hours" value="12" class="glass-input w-full mt-1 p-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></div><div class="flex items-center pt-5"><input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white/50"><label for="is-ot" class="ml-2 text-sm font-medium">OT</label></div></div></div></div></div></div>
                 </form>
                 <div class="p-6 pt-0">
                     <button id="save-assignment-btn" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg">Log Assignment</button>
@@ -171,25 +236,52 @@
             </div>
         </div>
 
-        <!-- Roster Pattern Overlay -->
-        <div id="pattern-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
-             <div id="pattern-card" class="glass-card w-full max-w-4xl bottom-sheet">
+        <!-- 1. Manage Teams Overlay (Shared for Admin/User) -->
+        <div id="team-manager-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
+             <div id="team-manager-card" class="glass-card w-full max-w-4xl bottom-sheet">
                 <header class="flex justify-between items-center p-4 border-b border-white/20">
-                   <h1 class="text-xl font-bold">Set Roster Pattern</h1>
-                   <button id="pattern-close-button" class="font-semibold text-blue-600 py-2 px-4 rounded-lg hover:bg-white/50">Close</button>
+                   <h1 id="team-manager-title" class="text-xl font-bold">Team & Pattern Selection</h1>
+                   <button id="team-manager-close-button" class="font-semibold text-blue-600 py-2 px-4 rounded-lg hover:bg-white/50">Close</button>
                </header>
-               <div class="p-6 space-y-4">
+               <!-- Content injected by renderTeamManagerList based on isAdmin -->
+               <div id="team-manager-content"></div>
+           </div>
+        </div>
+        
+        <!-- 2. Edit Team Pattern Overlay (Visual Editor) -->
+        <div id="edit-team-pattern-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
+             <div id="edit-team-pattern-card" class="glass-card w-full max-w-4xl max-h-[90vh] overflow-y-auto bottom-sheet">
+                <header class="flex justify-between items-center p-4 border-b border-white/20">
+                   <h1 id="edit-team-title" class="text-xl font-bold">Edit Pattern: New Team</h1>
+                   <button id="edit-team-cancel-btn" class="font-semibold text-red-600 py-2 px-4 rounded-lg hover:bg-white/50">Cancel</button>
+               </header>
+               <div class="p-6 space-y-6">
                     <div>
-                        <label for="pattern-anchor-date" class="block text-sm font-medium mb-2">Pattern Anchor Date (Day 1)</label>
-                        <input type="date" id="pattern-anchor-date" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <p class="text-xs text-gray-600 mt-1">Set the date that your "Day 1" falls on.</p>
+                        <label for="team-name-input" class="block text-sm font-medium mb-1 text-gray-600">Team Name</label>
+                        <input type="text" id="team-name-input" placeholder="e.g., Alpha Team" class="glass-input w-full p-2.5 rounded-lg shadow-sm text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="pattern-length" class="block text-sm font-medium mb-1">Pattern Length</label>
+                            <input type="number" id="pattern-length" min="1" max="30" value="6" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="pattern-anchor-date" class="block text-sm font-medium mb-1">Pattern Anchor Date</label>
+                            <input type="date" id="pattern-anchor-date" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-gray-600 mt-1">The "Day 1" of the rotation.</p>
+                        </div>
+                    </div>
+
                     <div>
-                        <label for="pattern-input" class="block text-sm font-medium mb-2">Repeating Pattern</label>
-                        <input type="text" id="pattern-input" placeholder="e.g. M, M, N, N, OFF, OFF" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <p class="text-xs text-gray-600 mt-1">Use `M` for Morning, `N` for Night, `OFF` for off. Separate with commas.</p>
+                        <label class="block text-lg font-bold mb-3">Visual Pattern</label>
+                        <p class="text-sm text-gray-600 mb-4">Click the cells below to cycle through shift types (Morning, Night, OFF).</p>
+                        <div id="visual-pattern-grid" class="grid gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-6">
+                            <!-- Pattern cells injected here by JS -->
+                        </div>
                     </div>
-                    <button id="save-pattern-btn" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg">Save Pattern</ReadMe>
+
+                    <button id="save-team-pattern-btn" class="btn w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">Save Changes</button>
                </div>
            </div>
         </div>
@@ -202,9 +294,10 @@
                    <button id="tools-close-button" class="font-semibold text-blue-600 py-2 px-4 rounded-lg hover:bg-white/50">Close</button>
                </header>
                <div class="p-6 space-y-4">
-                    <button id="set-pattern-btn" class="btn w-full bg-white/50 border border-indigo-600 text-indigo-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Set Roster Pattern</button>
+                    <!-- Updated button text and visibility logic in JS -->
+                    <button id="manage-teams-btn" class="btn w-full bg-white/50 border border-indigo-600 text-indigo-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Team Settings</button>
                     <button id="generate-report-btn" class="btn w-full bg-white/50 border border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Generate Report</button>
-                    <button id="clear-history-btn" class="btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Clear History</button>
+                    <button id="clear-history-btn" class="btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md shadow-md">Clear History</button>
                </div>
            </div>
         </div>
@@ -224,13 +317,22 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, getDocs, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDoc, doc, getDocs, updateDoc, setDoc, getDoc, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set log level to debug to help diagnose Firestore issues
+        setLogLevel('debug');
 
         // --- CONFIG AND INITIALIZATION ---
+        // NOTE: In a real environment, __firebase_config and __app_id would be used here.
         const firebaseConfig = {
           apiKey: "AIzaSyD7EdbBA4e04e6XvxnPgFdqZo_9squYMg0",
           authDomain: "shift-tracker-b7879.firebaseapp.com",
           projectId: "shift-tracker-b7879",
+          // Use the default storage bucket for this project.  As of October 30, 2024
+          // Firebase uses the `PROJECT_ID.firebasestorage.app` format for new
+          // buckets, while older projects use `PROJECT_ID.appspot.com`https://firebase.google.com/docs/storage/web/start#:~:text=Note%3A%20Starting%20October%2030%2C%202024%2C,Learn%20more%20in%20the%20FAQs.
+          // This project was created with the newer format, so keep the
+          // firebasestorage.app domain.
           storageBucket: "shift-tracker-b7879.firebasestorage.app",
           messagingSenderId: "619413261457",
           appId: "1:619413261457:web:71bb4d19745a64aab20330",
@@ -242,9 +344,15 @@
         // --- GLOBAL STATE ---
         let userId = null;
         let shiftsUnsubscribe = null;
-        let settingsUnsubscribe = null;
+        let teamsUnsubscribe = null;
+        let profileUnsubscribe = null;
         let allShifts = [];
-        let globalRosterPattern = { anchor: null, pattern: [] };
+        let allTeams = []; // [{ id, teamName, anchor, patternLength, pattern: [] }]
+        let userProfile = { userTeamId: null, userLocationFilter: 'Both' }; 
+        let isAdmin = false; 
+
+        let editingTeam = null; 
+        
         let displayedDate = new Date();
         let selectedShift = 'Morning';
         let selectedTeam = 'Sentry';
@@ -253,22 +361,44 @@
         
         // --- CONSTANTS ---
         const DUTY_LOCATIONS = { Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC'] };
+        const SHIFT_TEAMS = ['Sentry', 'Foyer', 'Others'];
+        const SHIFT_TYPES = ['M', 'N', 'OFF']; 
+        const LOCATION_FILTERS = ['Sentry', 'Foyer', 'Both'];
         const LOCATION_COLORS = { 'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' } };
         const ICONS = { morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`, others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>` };
         const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+        const ADMIN_EMAILS = [
+            'tvarajan7@gmail.com'
+        ];
+        
+        // Path for team patterns.  This will be assigned dynamically once the user
+        // authenticates (see onAuthStateChanged).  Admins will write to their own
+        // user path (users/{uid}/teams), while non-admins will read from all users via
+        // collectionGroup.  Keeping this as let allows reassignment on login.
+        let SHARED_TEAMS_PATH = '';
 
         // --- AUTH & UI MANAGEMENT ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 userId = user.uid;
+                isAdmin = ADMIN_EMAILS.includes(user.email);
+                // Assign the shared teams path under the authenticated user's document.  Admins will
+                // write to their own path; non-admins will still read from all users via collectionGroup.
+                SHARED_TEAMS_PATH = `users/${user.uid}/teams`;
                 updateUIForUser(user);
-                setupDataListeners(); // Modified to listen to more data
+                setupDataListeners(); 
             } else {
                 userId = null;
+                isAdmin = false; 
+                // Clear the shared teams path upon sign-out
+                SHARED_TEAMS_PATH = '';
                 if (shiftsUnsubscribe) shiftsUnsubscribe();
-                if (settingsUnsubscribe) settingsUnsubscribe();
+                if (teamsUnsubscribe) teamsUnsubscribe();
+                if (profileUnsubscribe) profileUnsubscribe();
                 allShifts = [];
-                globalRosterPattern = { anchor: null, pattern: [] };
+                allTeams = [];
+                userProfile = { userTeamId: null, userLocationFilter: 'Both' }; 
                 updateUIForGuest();
             }
         });
@@ -279,6 +409,7 @@
             document.getElementById('sign-in-prompt').classList.add('hidden');
             document.getElementById('main-app-ui').classList.remove('hidden');
             
+            // Render main UI structure
             document.getElementById('app-content').innerHTML = `
                 <div class="space-y-6">
                     <div class="card glass-card rounded-xl p-4">
@@ -307,6 +438,20 @@
             document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
             document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
             document.getElementById('calendar-view-btn').addEventListener('click', openCalendarView);
+            
+            // Re-render tools button visibility based on isAdmin state
+            const manageTeamsBtn = document.getElementById('manage-teams-btn');
+            if (manageTeamsBtn) {
+                // If not admin, change text to reflect user access
+                if (!isAdmin) {
+                    manageTeamsBtn.textContent = 'Team & Pattern Selection';
+                } else {
+                    manageTeamsBtn.textContent = 'Manage Teams & Patterns';
+                }
+                manageTeamsBtn.classList.remove('hidden'); // Always visible now
+                // The 'Clear History' button remains admin-only (visibility handled by handleClearHistory check)
+            }
+
             renderHistory();
         }
 
@@ -322,47 +467,115 @@
         function setupDataListeners() {
             // Stop any existing listeners
             if (shiftsUnsubscribe) shiftsUnsubscribe();
-            if (settingsUnsubscribe) settingsUnsubscribe();
+            if (teamsUnsubscribe) teamsUnsubscribe();
+            if (profileUnsubscribe) profileUnsubscribe();
             if (!userId) return;
 
-            // Listener for shifts
+            // 1. Listener for shifts (PRIVATE)
             const shiftsCollectionRef = collection(db, `users/${userId}/shifts`);
             shiftsUnsubscribe = onSnapshot(shiftsCollectionRef, (querySnapshot) => {
                 const fetchedShifts = [];
                 querySnapshot.forEach((doc) => fetchedShifts.push({ id: doc.id, ...doc.data() }));
-                allShifts = fetchedShifts.sort((a, b) => new Date(a.rawDate + 'T00:00:00') - new Date(b.rawDate + 'T00:00:00'));
-                renderHistory(); // This will also re-render the calendar if it's open
+                allShifts = fetchedShifts.sort((a, b) => new Date(b.rawDate + 'T00:00:00') - new Date(a.rawDate + 'T00:00:00'));
+                renderHistory();
             }, (error) => {
                 console.error("Error listening to shifts:", error);
-                showToast("Error fetching data.", true);
+                showToast("Error fetching shift data.", true);
+            });
+            
+            // 2. Listener for Teams
+            // All users listen to their own teams path under SHARED_TEAMS_PATH.  Using the user's
+            // path ensures compliance with Firestore security rules and avoids cross-user reads
+            // that could trigger permission errors when a global 'teams' collection exists.
+            const teamsCollectionRef = collection(db, ...SHARED_TEAMS_PATH.split('/'));
+            teamsUnsubscribe = onSnapshot(teamsCollectionRef, (querySnapshot) => {
+                allTeams = [];
+                querySnapshot.forEach((docSnap) => {
+                    allTeams.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                
+                // Detailed logging for team fetch success/failure state:
+                if (allTeams.length === 0) {
+                    console.warn(`[Teams Fetch] Success, but 0 teams found in path: /${SHARED_TEAMS_PATH}.`);
+                    // Only show the user the toast if they expect to see teams (can create their own)
+                    showToast(`No teams found in your data path.`, true);
+                } else {
+                    console.log(`[Teams Fetch] Success. Found ${allTeams.length} teams in path: /${SHARED_TEAMS_PATH}`);
+                    // Clear any lingering error toasts about team data
+                    if (document.getElementById('toast').textContent.includes("Error fetching teams data")) {
+                         document.getElementById('toast').style.opacity = '0';
+                    }
+                }
+                
+                // Re-render UI elements that depend on the team list
+                if (!document.getElementById('team-manager-overlay').classList.contains('hidden')) {
+                    renderTeamManagerList();
+                }
+                renderHistory(); // Rerender history/calendar based on new teams data
+            }, (error) => {
+                console.error(`[Teams Fetch] FAILED from path: /${SHARED_TEAMS_PATH}`, error);
+                showToast("Error fetching teams data. Check console for details (likely security rules).", true);
             });
 
-            // Listener for settings
-            const settingsDocRef = doc(db, `users/${userId}/settings`, 'roster');
-            settingsUnsubscribe = onSnapshot(settingsDocRef, (docSnap) => {
+
+            // 3. Listener for User Profile (PRIVATE)
+            const profileDocRef = doc(db, `users/${userId}/settings`, 'profile');
+            profileUnsubscribe = onSnapshot(profileDocRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    globalRosterPattern = docSnap.data();
-                    // Update pattern inputs if modal is open
-                    if (!document.getElementById('pattern-overlay').classList.contains('hidden')) {
-                        document.getElementById('pattern-anchor-date').value = globalRosterPattern.anchor || '';
-                        document.getElementById('pattern-input').value = globalRosterPattern.pattern ? globalRosterPattern.pattern.join(', ') : '';
-                    }
+                    userProfile = {
+                        userTeamId: docSnap.data().userTeamId || null,
+                        userLocationFilter: docSnap.data().userLocationFilter || 'Both', 
+                    };
                 } else {
-                    globalRosterPattern = { anchor: null, pattern: [] };
+                    userProfile = { userTeamId: null, userLocationFilter: 'Both' };
                 }
-                renderHistory(); // Re-render in case calendar view is open
+                renderHistory(); 
             }, (error) => {
-                console.error("Error listening to settings:", error);
+                console.error("Error listening to profile:", error);
             });
         }
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
             updateUIForGuest(); 
-            document.getElementById('auth-button').addEventListener('click', () => { auth.currentUser ? signOut(auth) : toggleOverlay('auth-overlay'); });
+            // Handle Auth Overlay visibility and setup
+            document.getElementById('auth-button').addEventListener('click', () => { 
+                if (auth.currentUser) {
+                    signOut(auth);
+                } else {
+                    toggleOverlay('auth-overlay');
+                    // Setup UI for Sign In by default
+                    document.getElementById('signup-fields').classList.add('hidden');
+                }
+            });
             document.getElementById('auth-cancel-btn').addEventListener('click', () => toggleOverlay('auth-overlay'));
+            
             document.getElementById('signin-btn').addEventListener('click', handleSignIn);
-            document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+            document.getElementById('signup-btn').addEventListener('click', () => {
+                // Toggle extra fields for Sign Up
+                const fields = document.getElementById('signup-fields');
+                const passwordInput = document.getElementById('password-input');
+                
+                if (fields.classList.contains('hidden')) {
+                    // First click: show signup fields
+                    fields.classList.remove('hidden');
+                    passwordInput.focus();
+                } else {
+                    // Second click (or first click after fields are visible): attempt sign up
+                    handleSignUp();
+                }
+            });
+
+            // NEW: Location Filter button handlers
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('signup-location-filter').value = this.dataset.locationFilter;
+                });
+            });
+
+
             document.getElementById('log-new-shift-btn').addEventListener('click', () => prepareNewShift(null, null));
             document.getElementById('logger-done-button').addEventListener('click', () => toggleOverlay('logger-overlay'));
             document.getElementById('tools-button').addEventListener('click', () => toggleOverlay('tools-overlay'));
@@ -372,6 +585,8 @@
             document.getElementById('clear-history-btn').addEventListener('click', handleClearHistory);
             document.getElementById('morning-shift-btn').addEventListener('click', () => selectShift('Morning'));
             document.getElementById('night-shift-btn').addEventListener('click', () => selectShift('Night'));
+            
+            // Team selectors need to be initialized in JS after login
             document.getElementById('sentry-tab').addEventListener('click', () => selectTeam('Sentry'));
             document.getElementById('foyer-tab').addEventListener('click', () => selectTeam('Foyer'));
             document.getElementById('others-tab').addEventListener('click', () => selectTeam('Others'));
@@ -379,10 +594,15 @@
             // Calendar listeners
             document.getElementById('calendar-close-button').addEventListener('click', () => toggleOverlay('calendar-overlay'));
 
-            // Roster Pattern listeners
-            document.getElementById('set-pattern-btn').addEventListener('click', openPatternView);
-            document.getElementById('pattern-close-button').addEventListener('click', () => toggleOverlay('pattern-overlay'));
-            document.getElementById('save-pattern-btn').addEventListener('click', saveRosterPattern);
+            // Team Manager listeners
+            document.getElementById('manage-teams-btn').addEventListener('click', openTeamManager);
+            document.getElementById('team-manager-close-button').addEventListener('click', () => toggleOverlay('team-manager-overlay'));
+            
+            // Edit Team Pattern listeners
+            document.getElementById('edit-team-cancel-btn').addEventListener('click', () => toggleOverlay('edit-team-pattern-overlay'));
+            document.getElementById('save-team-pattern-btn').addEventListener('click', saveTeamPattern);
+            document.getElementById('pattern-length').addEventListener('input', handlePatternLengthChange);
+            document.getElementById('visual-pattern-grid').addEventListener('click', handlePatternCellClick);
         });
 
         // --- AUTH HANDLERS ---
@@ -402,11 +622,23 @@
         async function handleSignUp() {
             const email = document.getElementById('email-input').value;
             const password = document.getElementById('password-input').value;
+            const locationFilter = document.getElementById('signup-location-filter').value; 
             const authErrorDiv = document.getElementById('auth-error');
             authErrorDiv.classList.add('hidden');
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Save location filter to user profile immediately
+                const profileDocRef = doc(db, `users/${userCredential.user.uid}/settings`, 'profile');
+                await setDoc(profileDocRef, { userLocationFilter: locationFilter }, { merge: true });
+
                 toggleOverlay('auth-overlay');
+                
+                if (ADMIN_EMAILS.includes(userCredential.user.email)) {
+                    showToast('Sign up successful! You are an Admin.', false);
+                } else {
+                    showToast(`Sign up successful! Your location filter is set to ${locationFilter}.`, false);
+                }
             } catch (error) {
                 authErrorDiv.textContent = error.message;
                 authErrorDiv.classList.remove('hidden');
@@ -430,13 +662,50 @@
             renderHistory();
         }
 
+        /**
+         * Checks if a shift's team is relevant to the user's location filter.
+         */
+        function isTeamRelevant(team) {
+            const filter = userProfile.userLocationFilter;
+            if (filter === 'Both') {
+                return true;
+            } else if (filter === 'Sentry') {
+                return team === 'Sentry' || team === 'Others';
+            } else if (filter === 'Foyer') {
+                return team === 'Foyer' || team === 'Others';
+            }
+            return false;
+        }
+
+
+        /**
+         * Toggles the visibility of shift details and rotates the chevron icon.
+         */
+        window.toggleShiftDetails = (shiftId) => {
+            const detailsElement = document.getElementById(`details-${shiftId}`);
+            const chevronElement = document.getElementById(`chevron-${shiftId}`);
+
+            if (detailsElement.classList.contains('hidden')) {
+                detailsElement.classList.remove('hidden');
+                chevronElement.classList.add('rotate-180');
+            } else {
+                detailsElement.classList.add('hidden');
+                chevronElement.classList.remove('rotate-180');
+            }
+        }
+
         function renderHistory() {
             if (!document.getElementById('month-display')) return;
             const year = displayedDate.getFullYear();
             const month = displayedDate.getMonth();
             document.getElementById('month-display').textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            const activeTeamPattern = getActiveTeamPattern();
 
-            const shiftsForMonth = allShifts.filter(s => {
+            // UPDATED: Apply location filter here
+            const filteredShifts = allShifts.filter(s => isTeamRelevant(s.team));
+
+            const shiftsForMonth = filteredShifts.filter(s => {
                 const shiftDate = new Date(s.rawDate + 'T00:00:00');
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
@@ -450,18 +719,9 @@
                 shiftsByDay.set(day, shift);
             });
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const loggedShift = shiftsByDay.get(day);
-                
-                if (loggedShift) {
-                    plannedHours += loggedShift.hours;
-                } else {
-                    const { autoShiftCode } = getAutoShiftForDay(day, year, month);
-                    if (autoShiftCode === 'M' || autoShiftCode === 'N') {
-                        plannedHours += 12; // Assume 12 hours for a planned M or N shift
-                    }
-                }
-            }
+            // Revert planned hours calculation to be strictly based on shiftsForMonth (already filtered)
+            plannedHours = shiftsForMonth.reduce((acc, s) => acc + s.hours, 0);
+
 
             const otHours = shiftsForMonth.filter(s => s.isOT).reduce((acc, s) => acc + s.hours, 0);
             
@@ -486,16 +746,49 @@
                 } else if (shift.shift === 'Night') {
                     shiftIcon = ICONS.night;
                 } else {
-                    // This else case should ideally not be hit with the new logic, but good as a fallback.
                     shiftIcon = ICONS.others;
                 }
 
                 const shiftDate = new Date(shift.rawDate + 'T00:00:00');
-                return `<div class="shift-entry border-b border-white/20 last:border-b-0"><div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="toggleShiftDetails('${shift.id}')"><div class="flex items-center gap-4 flex-grow"><div class="flex-shrink-0 text-center w-14"><p class="font-bold text-lg">${shiftDate.getDate()}</p><p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p></div><div class="pl-4 border-l border-white/20">${shiftIcon}</div><span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span></div><div class="flex items-center gap-4">${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : '<span class="w-10"></span>'}<svg id="chevron-${shift.id}" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></div></div><div id="details-${shift.id}" class="hidden p-3 pt-0 pl-24 bg-black/5"><div class="space-y-2 text-sm"><p class="font-medium text-gray-700">${shiftDate.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                
-                <p class="font-semibold">${shift.shift} (${shift.shiftTime})</p>
-                
-                <div class="flex items-center text-gray-600"><span>${shift.hours} hrs</span><span class="mx-2">|</span>${ICONS[shift.team.toLowerCase()]}<span>${shift.team === 'Others' ? 'Duty' : shift.team + ' Team'}</span></div><div class="flex items-center gap-4 mt-2"><button onclick="prepareEditShift('${shift.id}')" class="text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>Edit</button><button onclick="deleteShift('${shift.id}')" class="text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 text-xs"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete</button></div></div></div></div>`;
+
+                return `<div class="shift-entry border-b border-white/20 last:border-b-0">
+                    <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/30" onclick="window.toggleShiftDetails('${shift.id}')">
+                        <div class="flex items-center gap-4 flex-grow">
+                            <div class="flex-shrink-0 text-center w-14">
+                                <p class="font-bold text-lg">${shiftDate.getDate()}</p>
+                                <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                            </div>
+                            <div class="pl-4 border-l border-white/20">${shiftIcon}</div>
+                            <span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            ${shift.isOT ? `<span class="ot-tag bg-amber-100 text-amber-800">OT</span>` : '<span class="w-10"></span>'}
+                            <svg id="chevron-${shift.id}" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                    <div id="details-${shift.id}" class="hidden p-3 pt-0 pl-24 bg-black/5">
+                        <div class="space-y-2 text-sm">
+                            <p class="font-medium text-gray-700">${shiftDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                            
+                            <p class="font-semibold">${shift.shift} (${shift.shiftTime})</p>
+                            
+                            <div class="flex items-center text-gray-600">
+                                <span>${shift.hours} hrs</span>
+                                <span class="mx-2">|</span>
+                                ${ICONS[shift.team.toLowerCase()]}
+                                <span>${shift.team === 'Others' ? 'Duty' : shift.team + ' Team'}</span>
+                            </div>
+                            <div class="flex items-center gap-4 mt-2">
+                                <button onclick="window.prepareEditShift('${shift.id}')" class="text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1 text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>Edit
+                                </button>
+                                <button onclick="window.deleteShift('${shift.id}')" class="text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
             }).join('');
             historyList.innerHTML = `<div class="card glass-card rounded-xl overflow-hidden">${shiftsHTML}</div>`;
 
@@ -504,17 +797,31 @@
             }
         }
         
+        /**
+         * Prepares the logger modal for editing an existing shift.
+         */
         window.prepareEditShift = (shiftId) => { 
-            event.stopPropagation(); 
             const shiftToEdit = allShifts.find(s => s.id === shiftId); 
             if (!shiftToEdit) return; 
             
             editingShiftId = shiftId; 
             document.getElementById('shift-date').value = shiftToEdit.rawDate; 
             
-            selectTeam(shiftToEdit.team); // This will show/hide the M/N toggle
-            selectShift(shiftToEdit.shift); // Set M/N toggle
-            setTimeout(() => { document.getElementById('duty-location').value = shiftToEdit.location; }, 0); 
+            // Re-render tabs based on current filter BEFORE selecting the team
+            renderLoggerTeamTabs(); 
+
+            selectTeam(shiftToEdit.team);
+            selectShift(shiftToEdit.shift);
+            
+            setTimeout(() => { 
+                const dutyLocation = document.getElementById('duty-location');
+                if ([...dutyLocation.options].some(opt => opt.value === shiftToEdit.location)) {
+                    dutyLocation.value = shiftToEdit.location; 
+                } else {
+                    dutyLocation.value = dutyLocation.options[0].value; 
+                    showToast(`Location "${shiftToEdit.location}" not found for team "${shiftToEdit.team}". Defaulting to first option.`, true);
+                }
+            }, 50); 
             
             document.getElementById('shift-hours').value = shiftToEdit.hours; 
             document.getElementById('is-ot').checked = shiftToEdit.isOT; 
@@ -523,7 +830,23 @@
             toggleOverlay('logger-overlay'); 
         };
 
-        window.deleteShift = async (shiftId) => { event.stopPropagation(); if (!userId) return; /* Custom modal would be better */ if (!confirm("Are you sure you want to delete this shift?")) return; try { await deleteDoc(doc(db, `users/${userId}/shifts`, shiftId)); showToast('Shift entry deleted.'); } catch (error) { console.error("Error deleting document: ", error); showToast('Failed to delete shift.', true); } };
+        /**
+         * Deletes a shift entry immediately without confirmation.
+         */
+        window.deleteShift = async (shiftId) => { 
+            if (!userId) {
+                showToast('You must be signed in to delete entries.', true);
+                return;
+            }
+            try { 
+                await deleteDoc(doc(db, `users/${userId}/shifts`, shiftId)); 
+                window.toggleShiftDetails(shiftId);
+                showToast('Shift entry deleted successfully.'); 
+            } catch (error) { 
+                console.error("Error deleting document: ", error); 
+                showToast('Failed to delete shift entry.', true); 
+            } 
+        };
 
         function prepareNewShift(date, shiftType) {
             editingShiftId = null;
@@ -537,26 +860,77 @@
                 document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
             }
             
+            // NEW: Render logger tabs based on filter
+            renderLoggerTeamTabs(); 
+            
+            // Determine initial team selection based on filter
+            let initialTeam = 'Others';
+            if (userProfile.userLocationFilter === 'Sentry' && !document.getElementById('sentry-tab').classList.contains('hidden')) {
+                initialTeam = 'Sentry';
+            } else if (userProfile.userLocationFilter === 'Foyer' && !document.getElementById('foyer-tab').classList.contains('hidden')) {
+                initialTeam = 'Foyer';
+            } else if (userProfile.userLocationFilter === 'Both') {
+                initialTeam = 'Sentry';
+            }
+
+
             if (shiftType === 'OFF_DAY_OT') {
                 selectTeam('Others');
-                selectShift('Morning'); // Default to Morning for OT
+                selectShift('Morning'); 
                 setTimeout(() => { 
                     document.getElementById('duty-location').value = 'OT'; 
                     document.getElementById('is-ot').checked = true;
-                    document.getElementById('shift-hours').value = 0; // Set to 0 so user can input hours
+                    document.getElementById('shift-hours').value = 0; 
                 }, 0);
-            } else if (shiftType) { // 'Morning' or 'Night'
-                selectTeam('Sentry'); // Default to Sentry
+            } else if (shiftType) { 
+                selectTeam(initialTeam); 
                 selectShift(shiftType);
-                document.getElementById('shift-hours').value = 12; // Default hours
+                document.getElementById('shift-hours').value = 12; 
             } else {
-                selectTeam('Sentry'); // Default to Sentry
+                selectTeam(initialTeam); 
                 selectShift('Morning');
-                document.getElementById('shift-hours').value = 12; // Default hours
+                document.getElementById('shift-hours').value = 12; 
             }
             
             toggleOverlay('logger-overlay');
         }
+
+        // NEW: Function to filter team tabs in the logger based on user profile
+        function renderLoggerTeamTabs() {
+            const filter = userProfile.userLocationFilter;
+            
+            const sentryTab = document.getElementById('sentry-tab');
+            const foyerTab = document.getElementById('foyer-tab');
+            const othersTab = document.getElementById('others-tab');
+
+            if (filter === 'Sentry') {
+                sentryTab.classList.remove('hidden');
+                foyerTab.classList.add('hidden');
+                othersTab.classList.remove('hidden');
+            } else if (filter === 'Foyer') {
+                sentryTab.classList.add('hidden');
+                foyerTab.classList.remove('hidden');
+                othersTab.classList.remove('hidden');
+            } else { // Both
+                sentryTab.classList.remove('hidden');
+                foyerTab.classList.remove('hidden');
+                othersTab.classList.remove('hidden');
+            }
+            
+            // Ensure a visible tab is selected if the currently selected one is hidden
+            if (selectedTeam === 'Sentry' && filter === 'Foyer') {
+                selectedTeam = 'Foyer';
+            } else if (selectedTeam === 'Foyer' && filter === 'Sentry') {
+                selectedTeam = 'Sentry';
+            } else if (selectedTeam === 'Others') {
+                // If Others is selected, it should remain selected unless explicitly changed.
+            } else {
+                // Default selection if current selection is invalid
+                if (filter === 'Sentry' || filter === 'Both') selectedTeam = 'Sentry';
+                else if (filter === 'Foyer') selectedTeam = 'Foyer';
+            }
+        }
+
 
         async function saveAssignment() {
             const dateValue = document.getElementById('shift-date').value;
@@ -572,20 +946,15 @@
                 return showToast('Please enter valid working hours.', true);
             }
             
-            // ### MODIFICATION START: Unified shiftData object ###
-            // Logic is now the same for all teams.
-            // 'shift' is "Morning" or "Night"
-            // 'location' is "E1", "Foyer", "OT", "AdHoc", etc.
             const shiftData = { 
                 rawDate: dateValue, 
-                shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00', // Store standard M/N time
-                shift: selectedShift, // "Morning" or "Night"
-                team: selectedTeam, // "Sentry", "Foyer", or "Others"
-                location: location, // "E1", "OT", "Training", etc.
+                shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00',
+                shift: selectedShift,
+                team: selectedTeam,
+                location: location,
                 hours: hours, 
                 isOT: isOT 
             };
-            // ### MODIFICATION END ###
 
             try { 
                 if (editingShiftId) { 
@@ -604,100 +973,547 @@
 
         function selectShift(shift) { selectedShift = shift; const [morningBtn, nightBtn] = [document.getElementById('morning-shift-btn'), document.getElementById('night-shift-btn')]; morningBtn.classList.toggle('bg-white', shift === 'Morning'); morningBtn.classList.toggle('text-blue-700', shift === 'Morning'); nightBtn.classList.toggle('bg-white', shift === 'Night'); nightBtn.classList.toggle('text-blue-700', shift === 'Night'); }
         
-        // ### MODIFICATION START: Remove logic to hide shift toggle ###
         function selectTeam(team) {
             selectedTeam = team;
-            ['sentry', 'foyer', 'others'].forEach(t => document.getElementById(`${t}-tab`).classList.toggle('active', t === team.toLowerCase()));
+            ['sentry', 'foyer', 'others'].forEach(t => {
+                const tab = document.getElementById(`${t}-tab`);
+                if (tab) tab.classList.toggle('active', t === team.toLowerCase());
+            });
             updateDutyLocationDropdown();
-
-            // const shiftToggle = document.getElementById('shift-toggle-container');
-            // if (team === 'Others') {
-            //     shiftToggle.classList.add('hidden');
-            // } else {
-            //     shiftToggle.classList.remove('hidden');
-            // }
         }
-        // ### MODIFICATION END ###
 
-        function updateDutyLocationDropdown() { const dropdown = document.getElementById('duty-location'); dropdown.innerHTML = ''; DUTY_LOCATIONS[selectedTeam].forEach(loc => { const option = new Option(loc, loc); dropdown.appendChild(option); }); }
+        // UPDATED: Filter duty location dropdown based on the selected team
+        function updateDutyLocationDropdown() { 
+            const dropdown = document.getElementById('duty-location'); 
+            dropdown.innerHTML = ''; 
+            
+            const relevantLocations = DUTY_LOCATIONS[selectedTeam] || DUTY_LOCATIONS['Others'];
+            
+            relevantLocations.forEach(loc => { 
+                const option = new Option(loc, loc); 
+                dropdown.appendChild(option); 
+            }); 
+        }
+
         function showToast(message, isError = false) { const toast = document.getElementById('toast'); toast.textContent = message; toast.className = `fixed bottom-24 right-5 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300 z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`; toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)'; }, 3000); }
-        async function handleClearHistory() { const clearBtn = document.getElementById('clear-history-btn'); if (clearBtn.dataset.confirming) { clearTimeout(clearConfirmationTimeout); if (!userId) return showToast('Auth error.', true); try { const shiftsCollectionRef = collection(db, `users/${userId}/shifts`); const querySnapshot = await getDocs(shiftsCollectionRef); const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref)); await Promise.all(deletePromises); showToast('History cleared.'); resetClearButton(); toggleOverlay('tools-overlay'); } catch (error) { showToast('Failed to clear history.', true); } } else { clearBtn.dataset.confirming = 'true'; clearBtn.textContent = 'Confirm Clear?'; clearBtn.classList.replace('bg-red-600', 'bg-yellow-500'); clearBtn.classList.replace('hover:bg-red-700', 'hover:bg-yellow-600'); clearConfirmationTimeout = setTimeout(resetClearButton, 3500); } }
+        
+        async function handleClearHistory() { 
+            if (!isAdmin) {
+                showToast('Access Denied: Only Admins can clear history.', true);
+                return;
+            }
+            const clearBtn = document.getElementById('clear-history-btn'); 
+            if (clearBtn.dataset.confirming) { 
+                clearTimeout(clearConfirmationTimeout); 
+                if (!userId) return showToast('Auth error.', true); 
+                try { 
+                    const shiftsCollectionRef = collection(db, `users/${userId}/shifts`); 
+                    const querySnapshot = await getDocs(shiftsCollectionRef); 
+                    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref)); 
+                    await Promise.all(deletePromises); 
+                    showToast('History cleared.'); 
+                    resetClearButton(); 
+                    toggleOverlay('tools-overlay'); 
+                } catch (error) { 
+                    console.error("Error clearing history:", error);
+                    showToast('Failed to clear history.', true); 
+                } 
+            } else { 
+                clearBtn.dataset.confirming = 'true'; 
+                clearBtn.textContent = 'Confirm Clear?'; 
+                clearBtn.classList.replace('bg-red-600', 'bg-yellow-500'); 
+                clearBtn.classList.replace('hover:bg-red-700', 'hover:bg-yellow-600'); 
+                clearConfirmationTimeout = setTimeout(resetClearButton, 3500); 
+            } 
+        }
+
         function resetClearButton() { const clearBtn = document.getElementById('clear-history-btn'); clearBtn.dataset.confirming = ''; clearBtn.textContent = 'Clear History'; clearBtn.classList.replace('bg-yellow-500', 'bg-red-600'); clearBtn.classList.replace('hover:bg-yellow-600', 'hover:bg-red-700'); }
+        
+        // UPDATED: Filter report generation based on user's location filter
         function generateReport() {
-            let shiftsForMonth = allShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
-            if (shiftsForMonth.length === 0) { showToast('No data to report for this month.', true); return; }
+            
+            // FIX: Define calcFrequency at the start of the function to avoid ReferenceError.
+            const calcFrequency = (locations, shiftList) => { 
+                // Ensure locations is an array before mapping
+                const locationsArray = Array.isArray(locations) ? locations : [];
+                const counts = new Map(locationsArray.map(loc => [loc, 0])); 
+                shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1)); 
+                return Array.from(counts.entries()).map(([loc, count]) => `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td></tr>`).join(''); 
+            };
+            
+            // 1. Get filtered shifts
+            const rawShifts = allShifts.filter(s => isTeamRelevant(s.team));
+            let shiftsForMonth = rawShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
+            
+            if (shiftsForMonth.length === 0) { 
+                showToast('No data to report for this month based on your location filter.', true); 
+                toggleOverlay('tools-overlay'); // Close tools overlay
+                return; 
+            }
+            
             shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
             const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            let totalHours = 0, otHours = 0; shiftsForMonth.forEach(s => { totalHours += s.hours; if (s.isOT) otHours += s.hours; });
-            const calcFrequency = (locations, shiftList) => { const counts = new Map(locations.map(loc => [loc, 0])); shiftList.forEach(shift => counts.set(shift.location, (counts.get(shift.location) || 0) + 1)); return Array.from(counts.entries()).map(([loc, count]) => `<tr><td style="padding: 8px; background-color:${LOCATION_COLORS[loc]?.hex || '#f3f4f6'}; border-radius: 4px;">${loc}</td><td style="padding: 8px;">${count}</td></tr>`).join(''); };
-            const sentryData = calcFrequency(DUTY_LOCATIONS.Sentry, shiftsForMonth.filter(s => s.team === 'Sentry'));
-            const foyerData = calcFrequency(DUTY_LOCATIONS.Foyer, shiftsForMonth.filter(s => s.team === 'Foyer'));
-            const othersData = calcFrequency(DUTY_LOCATIONS.Others, shiftsForMonth.filter(s => s.team === 'Others'));
-            const detailedLogBody = shiftsForMonth.map(s => `<tr style="border-left: 5px solid ${LOCATION_COLORS[s.location]?.hex || '#ffffff'};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.location}</td><td style="padding: 8px;">${s.hours}</td></tr>`).join('');
-            const reportHTML = `<html><head><title>Report - ${monthName}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#e5e7eb;}</style></head><body><h1>Shift Report</h1><h2>${monthName}</h2><h3>Summary</h3><ul><li>Total Hours: ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul><h3>Sentry Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${sentryData}</tbody></table><h3>Foyer Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${foyerData}</tbody></table><h3>Detailed Log</h3><table><thead><tr><th>Date & Time</th><th>Location</th><th>Hours</th></tr></thead><tbody>${detailedLogBody}</tbody></table></body></html>`;
-            const reportWindow = window.open('');
-            reportWindow.document.write(reportHTML);
-            reportWindow.document.close();
+            
+            let totalHours = 0, otHours = 0;
+            shiftsForMonth.forEach(s => { totalHours += s.hours; if (s.isOT) otHours += s.hours; });
+
+            // --- Compute location frequencies by shift type ---
+            const uniqueLocations = Array.from(new Set(shiftsForMonth.map(s => s.location)));
+            const morningShifts = shiftsForMonth.filter(s => s.shift === 'Morning');
+            const nightShifts   = shiftsForMonth.filter(s => s.shift === 'Night');
+            
+            let morningFreqRows = '';
+            let nightFreqRows   = '';
+            
+            if (morningShifts.length > 0) {
+                // Ensure we pass the list of all unique locations for consistent table generation
+                morningFreqRows = calcFrequency(uniqueLocations, morningShifts);
+            }
+            if (nightShifts.length > 0) {
+                nightFreqRows   = calcFrequency(uniqueLocations, nightShifts);
+            }
+            
+            // 2. Filter data for the specific report sections
+            let sentryData = '', foyerData = '', detailedLogBody = '';
+            
+            const relevantTeams = SHIFT_TEAMS.filter(isTeamRelevant);
+            
+            // Determine locations for Sentry breakdown
+            if (relevantTeams.includes('Sentry') || userProfile.userLocationFilter === 'Sentry' || userProfile.userLocationFilter === 'Both') {
+                const sentryLocations = DUTY_LOCATIONS.Sentry;
+                sentryData = calcFrequency(
+                    sentryLocations, 
+                    shiftsForMonth.filter(s => s.team === 'Sentry' || (s.team === 'Others' && sentryLocations.includes(s.location)))
+                );
+            }
+
+            // Determine locations for Foyer breakdown
+            if (relevantTeams.includes('Foyer') || userProfile.userLocationFilter === 'Foyer' || userProfile.userLocationFilter === 'Both') {
+                const foyerLocations = DUTY_LOCATIONS.Foyer;
+                foyerData = calcFrequency(
+                    foyerLocations, 
+                    shiftsForMonth.filter(s => s.team === 'Foyer' || (s.team === 'Others' && foyerLocations.includes(s.location)))
+                );
+            }
+            
+            detailedLogBody = shiftsForMonth.map(s => `<tr style="border-left: 5px solid ${LOCATION_COLORS[s.location]?.hex || '#ffffff'};"><td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')} at ${s.shiftTime}</td><td style="padding: 8px;">${s.location}</td><td style="padding: 8px;">${s.hours}</td></tr>`).join('');
+            
+            let breakdownHTML = '';
+            // Existing breakdowns by team
+            if (sentryData && sentryData.trim() !== '') breakdownHTML += `<h3>Sentry Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${sentryData}</tbody></table>`;
+            if (foyerData && foyerData.trim() !== '') breakdownHTML += `<h3>Foyer Frequency</h3><table><thead><tr><th>Location</th><th>Count</th></tr></thead><tbody>${foyerData}</tbody></table>`;
+            
+            // --- MODIFIED: Side-by-side Morning/Night Frequency Tables ---
+            let shiftFrequencyHTML = '';
+            if ((morningFreqRows && morningFreqRows.trim() !== '') || (nightFreqRows && nightFreqRows.trim() !== '')) {
+                shiftFrequencyHTML = `
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 2em;">
+                        ${morningFreqRows && morningFreqRows.trim() !== '' ? `
+                            <div style="flex: 1 1 45%; min-width: 300px;">
+                                <h3>Morning Shift Location Frequency</h3>
+                                <table><thead><tr><th>Location</th><th>Morning Count</th></tr></thead><tbody>${morningFreqRows}</tbody></table>
+                            </div>
+                        ` : ''}
+                        ${nightFreqRows && nightFreqRows.trim() !== '' ? `
+                            <div style="flex: 1 1 45%; min-width: 300px;">
+                                <h3>Night Shift Location Frequency</h3>
+                                <table><thead><tr><th>Location</th><th>Night Count</th></tr></thead><tbody>${nightFreqRows}</tbody></table>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            // Append the side-by-side breakdown after the main team breakdowns
+            breakdownHTML += shiftFrequencyHTML;
+
+
+            const reportHTML = `<html><head><title>Shift Tracker Report - ${monthName}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}h3{margin-top:1.5em;color:#555;}ul{list-style:none;padding:0;}ul li{margin-bottom:0.5em;font-size:1.1em;}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:0.95em;}th{background-color:#e5e7eb;font-weight:600;}tr:nth-child(even) td{background-color:#f9fafb;}</style></head><body><h1>Shift Report</h1><h2>${monthName} (${userProfile.userLocationFilter} Filter)</h2><h3>Summary</h3><ul><li>Total Hours: ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul>${breakdownHTML}<h3>Detailed Log</h3><table><thead><tr><th>Date & Time</th><th>Location</th><th>Hours</th></tr></thead><tbody>${detailedLogBody}</tbody></table></body></html>`;
+            
+            try {
+                /*
+                 * Opening a blank window and writing HTML into it can be blocked by
+                 * pop‑up blockers on some platforms (particularly iOS) or fail
+                 * silently in embedded browsing contexts.  To make the report
+                 * generation more robust we construct a Blob containing the
+                 * generated HTML and open it via a blob URL.  Modern browsers
+                 * treat blob URLs as same‑origin resources so the content will
+                 * render consistently without triggering cross‑origin exceptions.
+                 */
+                const blob = new Blob([reportHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const reportWindow = window.open(url, '_blank', 'noopener');
+                if (!reportWindow) {
+                    // If the popup was blocked, inform the user explicitly.
+                    showToast('Pop‑up blocked: Please allow pop‑ups to view the report.', true);
+                } else {
+                    // Revoke the blob URL once the report has finished loading to free
+                    // memory.  We cannot revoke it immediately because doing so
+                    // before the new window loads would break the report.  A short
+                    // delay ensures that the browser has started reading the blob.
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }
+            } catch (error) {
+                // Log any unexpected error and show a user friendly toast.
+                console.error('Error generating report:', error);
+                showToast('An error occurred while generating the report.', true);
+            }
+
+            // Always close the tools overlay after attempting to generate the report
             toggleOverlay('tools-overlay');
         }
 
-        // --- ROSTER PATTERN FUNCTIONS ---
-        function openPatternView() {
-            // Pre-fill with saved data
-            document.getElementById('pattern-anchor-date').value = globalRosterPattern.anchor || new Date().toISOString().split('T')[0];
-            document.getElementById('pattern-input').value = globalRosterPattern.pattern ? globalRosterPattern.pattern.join(', ') : '';
-            toggleOverlay('pattern-overlay');
+        // --- ROSTER PATTERN/TEAM MANAGEMENT FUNCTIONS ---
+        
+        /**
+         * Finds the active team pattern based on the userProfile.
+         */
+        function getActiveTeamPattern() {
+            return allTeams.find(t => t.id === userProfile.userTeamId);
         }
 
-        async function saveRosterPattern() {
-            if (!userId) return showToast('You must be signed in.', true);
-
-            const anchor = document.getElementById('pattern-anchor-date').value;
-            const patternString = document.getElementById('pattern-input').value;
-            
-            if (!anchor || !patternString) {
-                return showToast('Please set both an anchor date and a pattern.', true);
-            }
-
-            const pattern = patternString.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            
-            if (pattern.length === 0) {
-                return showToast('Pattern cannot be empty. e.g. M, N, OFF', true);
-            }
-
-            const settingsDocRef = doc(db, `users/${userId}/settings`, 'roster');
-            try {
-                await setDoc(settingsDocRef, { anchor, pattern }, { merge: true });
-                showToast('Roster pattern saved!');
-                toggleOverlay('pattern-overlay');
-                toggleOverlay('tools-overlay'); // Close tools menu too
-            } catch (error) {
-                console.error("Error saving pattern:", error);
-                showToast('Failed to save pattern.', true);
-            }
-        }
-
-        function getAutoShiftForDay(day, year, month) {
-            const { anchor, pattern } = globalRosterPattern;
-            if (!anchor || !pattern || pattern.length === 0) {
-                return { autoShiftCode: null, isAuto: false };
+        /**
+         * Calculates the auto shift for a given day using the active team pattern.
+         */
+        function getAutoShiftForDay(day, year, month, teamPattern) {
+            if (!teamPattern || !teamPattern.anchor || !teamPattern.pattern || teamPattern.pattern.length === 0) {
+                return null;
             }
             
             try {
-                const anchorDate = new Date(anchor + 'T00:00:00');
+                const anchorDate = new Date(teamPattern.anchor + 'T00:00:00');
                 const currentDate = new Date(year, month, day);
                 
-                // Calculate days difference (and handle timezones by rounding)
                 const diffTime = currentDate - anchorDate;
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
+                const pattern = teamPattern.pattern;
                 const patternIndex = (diffDays % pattern.length + pattern.length) % pattern.length;
-                const autoShiftCode = pattern[patternIndex];
+                const autoShift = pattern[patternIndex];
                 
-                return { autoShiftCode, isAuto: true };
+                return autoShift ? { type: autoShift.type, isAuto: true } : null;
             } catch(e) {
                 console.error("Error calculating auto-shift:", e);
-                return { autoShiftCode: null, isAuto: false };
+                return null;
+            }
+        }
+        
+        // --- Team Manager (List View) Functions - SHARED LOGIC ---
+
+        function renderTeamManagerList() {
+            const container = document.getElementById('team-manager-content');
+            container.innerHTML = ''; // Clear previous content
+
+            if (isAdmin) {
+                // ADMIN VIEW: Full control over teams and patterns
+                container.innerHTML = `
+                    <div class="p-6 space-y-4">
+                        <div class="flex justify-between items-center pb-2 border-b border-white/20">
+                            <h2 class="text-lg font-semibold text-gray-700">All Teams (Shared Data: /${SHARED_TEAMS_PATH})</h2>
+                            <!-- CRITICAL Z-INDEX FIX: Adding z-50 inline -->
+                            <button id="add-new-team-btn" class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm z-50" style="z-index: 9999;">Add New Team</button>
+                        </div>
+                        <div id="teams-list" class="space-y-3">
+                            <p id="no-teams-message" class="text-center text-gray-500 py-4">No teams created. Click "Add New Team" above.</p>
+                            <!-- Team items injected here -->
+                        </div>
+                    </div>
+                `;
+                // CRITICAL FIX: Attach listener immediately after rendering content
+                document.getElementById('add-new-team-btn')?.addEventListener('click', () => openEditTeamPattern(null));
+
+            } else {
+                 // REGULAR USER VIEW: Allow users to view existing patterns and create their own.  Add New Team
+                 // button is provided so non-admins can manage their own roster patterns.  Writes are
+                 // restricted by Firestore rules to the user's own path.
+                 container.innerHTML = `
+                    <div class="p-6 space-y-4">
+                        <div class="flex justify-between items-center pb-2 border-b border-white/20">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-2">Select Your Roster Team</h2>
+                            <button id="add-new-team-btn" class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm z-50" style="z-index: 9999;">Add New Team</button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">Select the team pattern that matches your current roster to enable shift auto-planning on the calendar.</p>
+                        <div id="teams-list" class="space-y-3">
+                            <p id="no-teams-message" class="text-center text-gray-500 py-4">No teams are currently available. Use "Add New Team" above to create one.</p>
+                            <!-- Team items injected here -->
+                        </div>
+                    </div>
+                 `;
+                 // Attach listener for the Add New Team button in user view
+                 document.getElementById('add-new-team-btn')?.addEventListener('click', () => openEditTeamPattern(null));
+            }
+            
+            const listContainer = document.getElementById('teams-list');
+            const noTeamsMessage = document.getElementById('no-teams-message');
+
+            noTeamsMessage.classList.toggle('hidden', allTeams.length > 0);
+            
+            // Render the team list (same logic for both)
+            allTeams.forEach(team => {
+                const isActive = team.id === userProfile.userTeamId;
+                const patternSummary = team.pattern?.map(p => p.type).join(', ') || 'No pattern set';
+
+                const teamItem = document.createElement('div');
+                teamItem.className = `glass-card p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center ${isActive ? 'border-2 border-indigo-600' : 'border border-white/20'}`;
+                
+                let actionButton = '';
+                if (isActive) {
+                    actionButton = `<span class="text-sm text-gray-500 py-2 px-3 font-medium">Selected</span>`;
+                } else {
+                    actionButton = `<button onclick="window.setUserTeam('${team.id}')" class="text-sm bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-lg">Select</button>`;
+                }
+
+                if (isAdmin) {
+                    // Admin view gets both Select/Selected and Edit/Delete buttons
+                    actionButton = `
+                        <button onclick="window.openEditTeamPattern('${team.id}')" class="text-sm text-blue-500 hover:text-blue-700 font-semibold p-2 rounded-lg bg-white/50">Edit</button>
+                        ${actionButton}
+                        ${!isActive ? `<button onclick="window.deleteTeam('${team.id}')" class="text-sm text-red-500 hover:text-red-700 font-semibold p-2 rounded-lg bg-white/50">Delete</button>` : ''}
+                    `;
+                }
+
+                teamItem.innerHTML = `
+                    <div class="flex-grow w-full">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-gray-800 truncate">${team.teamName}</h3>
+                            ${isActive ? '<span class="text-xs font-semibold bg-indigo-100 text-indigo-700 py-0.5 px-2 rounded-full">ACTIVE</span>' : ''}
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1 truncate">Pattern: ${patternSummary}</p>
+                    </div>
+                    <div class="flex space-x-2 mt-3 sm:mt-0 flex-shrink-0">
+                        ${actionButton}
+                    </div>
+                `;
+                listContainer.appendChild(teamItem);
+            });
+        }
+
+        window.setUserTeam = async (teamId) => {
+            if (!userId) return showToast('You must be signed in.', true);
+            const profileDocRef = doc(db, `users/${userId}/settings`, 'profile');
+            try {
+                await setDoc(profileDocRef, { userTeamId: teamId }, { merge: true });
+                showToast(`Active team set!`);
+                // Re-render the list to update the "ACTIVE" status
+                renderTeamManagerList(); 
+                // Since the pattern may have changed, re-render history/calendar
+                renderHistory();
+            } catch(e) {
+                console.error("Error setting active team:", e);
+                showToast('Failed to set active team.', true);
+            }
+        };
+        
+        window.deleteTeam = async (teamId) => {
+            if (!userId) return showToast('You must be signed in.', true);
+            // Removing admin check; users can delete their own teams.  Firestore rules
+            // ensure that users cannot delete documents outside their own path.
+            if (teamId === userProfile.userTeamId) {
+                 return showToast('Cannot delete the active team. Please select another team first.', true);
+            }
+            try {
+                // UPDATED: Delete from the SHARED path
+                await deleteDoc(doc(db, ...SHARED_TEAMS_PATH.split('/'), teamId));
+                showToast('Team pattern deleted.');
+            } catch (e) {
+                console.error("Error deleting team:", e);
+                showToast('Failed to delete team pattern.', true);
+            }
+        };
+
+        // MODIFIED: Allows all users to open the overlay, but restricts functionality inside
+        function openTeamManager() {
+            document.getElementById('team-manager-title').textContent = isAdmin ? 'Manage Teams & Patterns' : 'Team & Pattern Selection';
+            
+            // This function is now shared and renders the content based on isAdmin status.
+            renderTeamManagerList();
+            
+            toggleOverlay('team-manager-overlay');
+            toggleOverlay('tools-overlay');
+        }
+
+
+        // --- Edit Team Pattern (Visual Editor) Functions ---
+
+        /**
+         * Prepares and opens the visual editor for a new or existing team.
+         * @param {string|null} teamId The ID of the team to edit, or null for new team.
+         */
+        window.openEditTeamPattern = (teamId) => {
+            if (!userId) return showToast('Please sign in first.', true);
+            // Allow all authenticated users to open the team pattern editor.  Firestore rules
+            // enforce that only the document owner can save changes.
+
+            const teamToEdit = teamId ? allTeams.find(t => t.id === teamId) : null;
+            
+            if (teamId && !teamToEdit) {
+                return showToast('Team not found!', true);
+            }
+            
+            // Set up editingTeam state (deep clone for safe editing)
+            if (teamToEdit) {
+                editingTeam = JSON.parse(JSON.stringify(teamToEdit));
+                document.getElementById('edit-team-title').textContent = `Edit Pattern: ${teamToEdit.teamName}`;
+            } else {
+                editingTeam = { 
+                    id: null, 
+                    teamName: 'New Team', 
+                    anchor: new Date().toISOString().split('T')[0], 
+                    patternLength: 6, 
+                    pattern: Array(6).fill({ type: 'OFF' }) 
+                };
+                document.getElementById('edit-team-title').textContent = `Create New Team`;
+            }
+            
+            // Populate inputs
+            document.getElementById('team-name-input').value = editingTeam.teamName;
+            document.getElementById('pattern-anchor-date').value = editingTeam.anchor;
+            document.getElementById('pattern-length').value = editingTeam.patternLength;
+
+            // Render grid
+            renderPatternGrid();
+
+            // Open the modal
+            toggleOverlay('edit-team-pattern-overlay');
+            if (!document.getElementById('team-manager-overlay').classList.contains('hidden')) {
+                toggleOverlay('team-manager-overlay'); // Close manager view if open
+            }
+            if (!document.getElementById('tools-overlay').classList.contains('hidden')) {
+                toggleOverlay('tools-overlay'); // Close tools view if open
+            }
+        };
+
+        /**
+         * Renders the visual pattern grid based on the current editingTeam state.
+         */
+        function renderPatternGrid() {
+            const grid = document.getElementById('visual-pattern-grid');
+            const pattern = editingTeam.pattern;
+            grid.innerHTML = '';
+            
+            const length = pattern.length;
+            let colClass = 'grid-cols-3'; 
+            if (length > 4) colClass = 'sm:grid-cols-4';
+            if (length > 6) colClass = 'md:grid-cols-6';
+            
+            grid.className = `grid gap-3 ${colClass}`;
+
+            pattern.forEach((shift, index) => {
+                const dayNum = index + 1;
+                const shiftType = shift.type || 'OFF';
+                
+                let value = shiftType;
+                if (shiftType === 'M') value = 'MORNING';
+                if (shiftType === 'N') value = 'NIGHT';
+
+                const cell = document.createElement('div');
+                cell.className = `pattern-cell rounded-lg pattern-cell-${shiftType}`;
+                cell.dataset.index = index;
+                
+                cell.innerHTML = `
+                    <span class="pattern-label">Day ${dayNum}</span>
+                    <span class="pattern-value">${value}</span>
+                `;
+                
+                grid.appendChild(cell);
+            });
+        }
+        
+        /**
+         * Cycles the shift type for a clicked cell in the pattern editor.
+         */
+        function handlePatternCellClick(event) {
+            const cell = event.target.closest('.pattern-cell');
+            if (!cell) return;
+            
+            const index = parseInt(cell.dataset.index);
+            const currentType = editingTeam.pattern[index].type;
+            
+            const typeIndex = SHIFT_TYPES.indexOf(currentType);
+            const nextTypeIndex = (typeIndex + 1) % SHIFT_TYPES.length;
+            const nextType = SHIFT_TYPES[nextTypeIndex];
+
+            // Update state
+            editingTeam.pattern[index] = { type: nextType };
+            renderPatternGrid();
+        }
+
+        /**
+         * Handles change to the Pattern Length input field, resizing the pattern array.
+         */
+        function handlePatternLengthChange(event) {
+            let newLength = parseInt(event.target.value);
+
+            if (isNaN(newLength) || newLength < 1) newLength = 1;
+            if (newLength > 30) newLength = 30;
+            
+            event.target.value = newLength; 
+
+            const oldLength = editingTeam.pattern.length;
+            
+            if (newLength === oldLength) return;
+            
+            const newPattern = [];
+            for (let i = 0; i < newLength; i++) {
+                if (i < oldLength) {
+                    newPattern.push(editingTeam.pattern[i]);
+                } else {
+                    newPattern.push({ type: 'OFF' });
+                }
+            }
+            
+            editingTeam.patternLength = newLength;
+            editingTeam.pattern = newPattern;
+            
+            renderPatternGrid();
+        }
+
+        async function saveTeamPattern() {
+            if (!userId) return showToast('You must be signed in.', true);
+            // All authenticated users can create or update their own team patterns.  Firestore
+            // security rules restrict writes to the user's own path.  Therefore, we no longer
+            // gate this action on isAdmin.
+
+            const teamName = document.getElementById('team-name-input').value.trim();
+            const anchor = document.getElementById('pattern-anchor-date').value;
+            const patternLength = parseInt(document.getElementById('pattern-length').value);
+            // Use the pattern array from the editing state
+            const pattern = editingTeam.pattern.slice(0, patternLength); 
+
+            if (!teamName) {
+                return showToast('Please enter a Team Name.', true);
+            }
+            if (!anchor) {
+                return showToast('Please set an Anchor Date.', true);
+            }
+            
+            if (patternLength < 1) {
+                return showToast('Pattern length must be at least 1.', true);
+            }
+
+            const teamData = { teamName, anchor, patternLength, pattern };
+            
+            try {
+                if (editingTeam.id) {
+                    // Update existing team
+                    // UPDATED: Use the SHARED path
+                    // When using a dynamic path with slashes, split it into segments so Firestore
+                    // correctly interprets each portion.  Without splitting, the entire string
+                    // would be treated as a single segment, producing invalid paths.
+                    const teamDocRef = doc(db, ...SHARED_TEAMS_PATH.split('/'), editingTeam.id);
+                    await updateDoc(teamDocRef, teamData);
+                    showToast(`Team "${teamName}" updated!`);
+                } else {
+                    // Add new team
+                    // UPDATED: Use the SHARED path
+                    await addDoc(collection(db, ...SHARED_TEAMS_PATH.split('/')), teamData);
+                    showToast(`New team "${teamName}" created!`);
+                }
+                
+                toggleOverlay('edit-team-pattern-overlay');
+                openTeamManager(); // Return to the manager view
+            } catch (error) {
+                console.error("Error saving team pattern:", error);
+                showToast('Failed to save team pattern.', true);
             }
         }
 
@@ -714,13 +1530,18 @@
             const weekdaysGrid = document.getElementById('calendar-weekdays');
             
             if (!calendarGrid || !calendarTitle || !weekdaysGrid) return;
+            
+            const activeTeamPattern = getActiveTeamPattern();
 
             const year = displayedDate.getFullYear();
             const month = displayedDate.getMonth();
             
             calendarTitle.textContent = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             
-            const shiftsForMonth = allShifts.filter(s => {
+            // UPDATED: Filter shifts for calendar view
+            const filteredShifts = allShifts.filter(s => isTeamRelevant(s.team));
+
+            const shiftsForMonth = filteredShifts.filter(s => {
                 const shiftDate = new Date(s.rawDate + 'T00:00:00');
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
@@ -765,7 +1586,9 @@
                 let cellHTML = `<span class="${dayNumClasses}">${day}</span>`;
 
                 const loggedShift = shiftsByDay.get(day);
-                const { autoShiftCode, isAuto } = getAutoShiftForDay(day, year, month);
+                const autoShift = getAutoShiftForDay(day, year, month, activeTeamPattern);
+                const isAuto = autoShift !== null;
+                const autoShiftType = autoShift ? autoShift.type : null;
 
                 if (loggedShift) {
                     // --- RENDER LOGGED SHIFT (OVERRIDE) ---
@@ -777,7 +1600,6 @@
                     } else if (loggedShift.shift === 'Night') {
                         shiftIcon = ICONS.night;
                     } else {
-                        // Fallback for older data before this change
                         shiftIcon = ICONS.others;
                     }
 
@@ -794,26 +1616,33 @@
                     // Add click handler to edit the *existing* shift
                     cell.onclick = () => {
                         toggleOverlay('calendar-overlay'); // Close calendar
-                        prepareEditShift(loggedShift.id); // Open logger with this shift
+                        window.prepareEditShift(loggedShift.id); // Open logger with this shift
                     };
-                } else if (isAuto) {
+                } else if (isAuto && activeTeamPattern && userProfile.userTeamId) {
                     // --- RENDER AUTO-PATTERN SHIFT ---
+                    // Auto-shifts are only displayed if a pattern is selected AND the user has a relevant filter.
+                    // Since the pattern is generic (M/N/OFF), we only show it if the user has *some* location assigned.
                     let shiftIcon = '';
                     let shiftColor = 'text-gray-700';
-                    if (autoShiftCode === 'M') {
+                    let displayCode = autoShiftType;
+
+                    if (autoShiftType === 'M') {
                         shiftIcon = ICONS.morning;
                         shiftColor = 'text-yellow-700';
-                    } else if (autoShiftCode === 'N') {
+                        displayCode = 'M';
+                    } else if (autoShiftType === 'N') {
                         shiftIcon = ICONS.night;
                         shiftColor = 'text-indigo-700';
-                    } else if (autoShiftCode === 'OFF') {
+                        displayCode = 'N';
+                    } else if (autoShiftType === 'OFF') {
                         shiftColor = 'text-green-700';
+                        displayCode = 'OFF';
                     }
                     
                     cellHTML += `
                         <div class="auto-shift">
                             ${shiftIcon}
-                            <span class="auto-shift-text ${shiftColor}">${autoShiftCode}</span>
+                            <span class="auto-shift-text ${shiftColor}">${displayCode}</span>
                         </div>
                     `;
                     
@@ -823,16 +1652,19 @@
                         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         
                         let shiftType;
-                        if (autoShiftCode === 'N') {
-                            shiftType = 'Night'; // Pre-fill "Night"
-                        } else if (autoShiftCode === 'OFF') {
-                            shiftType = 'OFF_DAY_OT'; // NEW special type
+                        if (autoShiftType === 'N') {
+                            shiftType = 'Night'; 
+                        } else if (autoShiftType === 'OFF') {
+                            shiftType = 'OFF_DAY_OT'; 
                         } else {
-                            shiftType = 'Morning'; // Default for 'M' or anything else
+                            shiftType = 'Morning'; 
                         }
 
                         prepareNewShift(dateString, shiftType); // Open logger pre-filled
                     };
+                } else {
+                    // No logged shift and no pattern or no active team selected
+                    cell.classList.add('empty'); // Make empty days slightly less prominent
                 }
                 
                 cell.innerHTML = cellHTML;
@@ -842,5 +1674,4 @@
     </script>
 </body>
 </html>
-
 
