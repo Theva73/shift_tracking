@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Shift Tracker">
-    <!-- Using the RAW URL from GitHub for the custom icon: -->
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Theva73/shift_tracking/main/apple-touch-icon.png">
-    <link rel="icon" href="https://raw.githubusercontent.com/Theva73/shift_tracking/main/apple-touch-icon.png">
+    <!-- Using a professional placeholder URL for the suggested Clock/Calendar logo: -->
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/1e3a8a/ffffff/png?text=Shift+Log">
+    <link rel="icon" href="https://placehold.co/192x192/1e3a8a/ffffff/png?text=Shift+Log">
     <!-- END UPDATED METADATA -->
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -521,7 +521,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 if (!document.getElementById('team-manager-overlay').classList.contains('hidden')) {
                     renderTeamManagerList();
                 }
-                renderHistory(); // Rerender history/calendar based on new teams data
+                renderHistory(); // Re-render history/calendar based on new teams data
             }, (error) => {
                 console.error(`[Teams Fetch] FAILED from path: /${SHARED_TEAMS_PATH}`, error);
                 showToast("Error fetching teams data. Check console for details (likely security rules).", true);
@@ -1121,13 +1121,13 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                         ${morningFreqRows && morningFreqRows.trim() !== '' ? `
                             <div style="flex: 1 1 45%; min-width: 300px;">
                                 <h3>Morning Shift Location Frequency</h3>
-                                <table><thead><tr><th>Location</th><th>Morning Count</th></tr></thead><tbody>${morningFreqRows}</tbody></table>
+                                <table><thead><tr><th>Location</th><th>Morning Shift</th></tr></thead><tbody>${morningFreqRows}</tbody></table>
                             </div>
                         ` : ''}
                         ${nightFreqRows && nightFreqRows.trim() !== '' ? `
                             <div style="flex: 1 1 45%; min-width: 300px;">
                                 <h3>Night Shift Location Frequency</h3>
-                                <table><thead><tr><th>Location</th><th>Night Count</th></tr></thead><tbody>${nightFreqRows}</tbody></table>
+                                <table><thead><tr><th>Location</th><th>Night Shift</th></tr></thead><tbody>${nightFreqRows}</tbody></table>
                             </div>
                         ` : ''}
                     </div>
