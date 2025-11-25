@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Shift Tracker">
-    <!-- Using a professional placeholder URL for the suggested Clock/Calendar logo: -->
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/1e3a8a/ffffff/png?text=Shift+Log">
-    <link rel="icon" href="https://placehold.co/192x192/1e3a8a/ffffff/png?text=Shift+Log">
+    <!-- Using the placeholder link to maintain functionality -->
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/FF8C00/ffffff/png?text=Location+Pin+Click">
+    <link rel="icon" href="https://placehold.co/192x192/FF8C00/ffffff/png?text=Location+Pin+Click">
     <!-- END UPDATED METADATA -->
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -145,6 +145,12 @@
                  <button id="auth-button" class="btn text-sm font-semibold text-blue-600 hover:text-blue-800">Sign In</button>
              </div>
          </header>
+
+        <!-- NEW: Global Error Banner for Debugging -->
+        <div id="global-error-banner" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 hidden" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span id="error-message" class="block sm:inline">An unexpected error occurred.</span>
+        </div>
         
         <div id="app-content"><!-- Main content is injected here --></div>
         
@@ -332,17 +338,30 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
         // Set log level to debug to help diagnose Firestore issues
         setLogLevel('debug');
 
+        // --- GLOBAL ERROR HANDLER (For debugging white screens) ---
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorBanner = document.getElementById('global-error-banner');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (errorMessage) {
+                errorMessage.textContent = `JS Error: ${message} (Line ${lineno})`;
+                if (errorBanner) {
+                    errorBanner.classList.remove('hidden');
+                }
+            }
+            console.error("Uncaught Global Error:", message, source, lineno, colno, error);
+            // Returning true prevents the default browser error handling, often desirable.
+            return true;
+        };
+
+
         // --- CONFIG AND INITIALIZATION ---
         // NOTE: In a real environment, __firebase_config and __app_id would be used here.
         const firebaseConfig = {
           apiKey: "AIzaSyD7EdbBA4e04e6XvxnPgFdqZo_9squYMg0",
           authDomain: "shift-tracker-b7879.firebaseapp.com",
           projectId: "shift-tracker-b7879",
-          // Use the default storage bucket for this project.  As of October 30, 2024
-          // Firebase uses the `PROJECT_ID.firebasestorage.app` format for new
-          // buckets, while older projects use `PROJECT_ID.appspot.com`https://firebase.google.com/docs/storage/web/start#:~:text=Note%3A%20Starting%20October%2030%2C%202024%2C%20Firebase%20uses%20the%20`PROJECT_ID.firebasestorage.app`%20format%20for%20new%20buckets%2C%20while%20older%20projects%20use%20`PROJECT_ID.appspot.com`.
-          // This project was created with the newer format, so keep the
-          // firebasestorage.app domain.
+          // Use the default storage bucket for this project.
           storageBucket: "shift-tracker-b7879.firebasestorage.app",
           messagingSenderId: "619413261457",
           appId: "1:619413261457:web:71bb4d19745a64aab20330",
@@ -742,7 +761,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                     // Logged Hours (Actual hours worked)
                     loggedHours += loggedShift.hours;
                     
-                    // Planned Hours (Only count based on rotation if not logged, but if logged, count the full shift hours)
+                    // Planned Hours (When logged, count the logged hours)
                     plannedHours += loggedShift.hours;
                     
                 } else if (activeTeamPattern && userProfile.userTeamId) {
