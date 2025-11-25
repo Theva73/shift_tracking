@@ -224,7 +224,19 @@
                             <button type="button" id="sentry-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center active"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Sentry</span></button>
                             <button type="button" id="foyer-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg><span class="text-sm font-semibold mt-1">Foyer</span></button>
                             <button type="button" id="others-tab" class="team-selector-btn p-3 rounded-lg flex flex-col items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg><span class="text-sm font-semibold mt-1">Others</span></button>
-                        </div></div></div><div class="space-y-4"><div><label for="duty-location" class="block text-sm font-medium mb-2">Duty / Location</label><select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select></div><div><label class="block text-sm font-medium mb-2">Hours & Overtime</label><div class="flex items-center gap-4 p-3 bg-white/20 rounded-lg"><div class="flex-1"><label for="shift-hours" class="text-sm">Working Hours</label><input type="number" id="shift-hours" value="12" class="glass-input w-full mt-1 p-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></div><div class="flex items-center pt-5"><input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white/50"><label for="is-ot" class="ml-2 text-sm font-medium">OT</label></div></div></div></div></div></div>
+                        </div></div></div><div class="space-y-4">
+                        
+                        <!-- Duty / Location Section -->
+                        <div id="duty-location-group">
+                            <label for="duty-location" class="block text-sm font-medium mb-2">Duty / Location</label>
+                            <select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
+                            
+                            <!-- NEW: Free Text Input for Redeploy Location -->
+                            <input type="text" id="redeploy-location-input" placeholder="Enter Redeploy Location (e.g., ICA Lock-up)" 
+                                   class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2 hidden">
+                        </div>
+                        
+                        <div><label class="block text-sm font-medium mb-2">Hours & Overtime</label><div class="flex items-center gap-4 p-3 bg-white/20 rounded-lg"><div class="flex-1"><label for="shift-hours" class="text-sm">Working Hours</label><input type="number" id="shift-hours" value="12" class="glass-input w-full mt-1 p-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></div><div class="flex items-center pt-5"><input type="checkbox" id="is-ot" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white/50"><label for="is-ot" class="ml-2 text-sm font-medium">OT</label></div></div></div></div></div></div>
                 </form>
                 <div class="p-6 pt-0">
                     <button id="save-assignment-btn" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg">Log Assignment</button>
@@ -418,16 +430,37 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
         let clearConfirmationTimeout = null;
         
         // --- CONSTANTS ---
-        // UPDATED: Confirmed comprehensive list for all tracked Sentry and Foyer locations.
+        // UPDATED: Added a marker value for free-text redeployment in DUTY_LOCATIONS.Others
+        const REDEPLOY_MARKER = 'Redeploy location';
         const DUTY_LOCATIONS = { 
             Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], 
             Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], 
-            Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC'] 
+            // ADDED: Redeploy marker here
+            Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC', REDEPLOY_MARKER] 
         };
         const SHIFT_TEAMS = ['Sentry', 'Foyer', 'Others'];
         const SHIFT_TYPES = ['M', 'N', 'OFF']; 
         const LOCATION_FILTERS = ['Sentry', 'Foyer', 'Both'];
-        const LOCATION_COLORS = { 'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' } };
+        const LOCATION_COLORS = { 
+            'E1': { bg: 'bg-blue-100', text: 'text-blue-800', hex: '#dbeafe' }, 
+            'GUARD HOUSE': { bg: 'bg-emerald-100', text: 'text-emerald-800', hex: '#d1fae5' }, 
+            'ECHO 3': { bg: 'bg-orange-100', text: 'text-orange-800', hex: '#ffedd5' }, 
+            'PATROL 1': { bg: 'bg-violet-100', text: 'text-violet-800', hex: '#ede9fe' }, 
+            'OE / STANDBY': { bg: 'bg-gray-200', text: 'text-gray-800', hex: '#e5e7eb' }, 
+            'ECHO 2': { bg: 'bg-pink-100', text: 'text-pink-800', hex: '#fce7f3' }, 
+            'PATROL 2': { bg: 'bg-teal-100', text: 'text-teal-800', hex: '#ccfbf1' }, 
+            'VISITOR X-RAY': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }, 
+            'STAFF X-RAY': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' }, 
+            'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 
+            'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 
+            'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 
+            'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 
+            'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 
+            'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 
+            'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' },
+            // Added default color for Redeploy marker - actual saved value might differ
+            [REDEPLOY_MARKER]: { bg: 'bg-purple-100', text: 'text-purple-800', hex: '#f3e8ff' } 
+        };
         const ICONS = { morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`, sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`, others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>` };
         const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -655,6 +688,9 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             document.getElementById('foyer-tab').addEventListener('click', () => selectTeam('Foyer'));
             document.getElementById('others-tab').addEventListener('click', () => selectTeam('Others'));
             
+            // Listener for the duty location change to show/hide free text input
+            document.getElementById('duty-location').addEventListener('change', updateRedeployInputVisibility);
+
             // Calendar listeners
             document.getElementById('calendar-close-button').addEventListener('click', () => toggleOverlay('calendar-overlay'));
 
@@ -827,7 +863,8 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             if (sortedList.length === 0) { historyList.innerHTML = ''; return; }
 
             const shiftsHTML = sortedList.map(shift => {
-                const colorInfo = LOCATION_COLORS[shift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                // Determine color: if location is Redeploy, use a generic color, otherwise look up.
+                const colorInfo = LOCATION_COLORS[shift.location] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                 
                 let shiftIcon;
                 if (shift.shift === 'Morning') {
@@ -909,10 +946,22 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             
             setTimeout(() => { 
                 const dutyLocation = document.getElementById('duty-location');
-                if ([...dutyLocation.options].some(opt => opt.value === shiftToEdit.location)) {
+                const redeployInput = document.getElementById('redeploy-location-input');
+                const relevantLocations = DUTY_LOCATIONS[shiftToEdit.team] || DUTY_LOCATIONS['Others'];
+                
+                // Check if the saved location is one of the predefined list options
+                if (relevantLocations.includes(shiftToEdit.location)) {
                     dutyLocation.value = shiftToEdit.location; 
+                    redeployInput.classList.add('hidden');
+                } else if (shiftToEdit.team === 'Others') {
+                    // Assume it's a free-text redeploy location if it's 'Others' but not a predefined value
+                    // Set the dropdown to the marker and show the input with the saved value
+                    dutyLocation.value = REDEPLOY_MARKER;
+                    redeployInput.value = shiftToEdit.location;
+                    redeployInput.classList.remove('hidden');
                 } else {
                     dutyLocation.value = dutyLocation.options[0].value; 
+                    redeployInput.classList.add('hidden');
                     showToast(`Location "${shiftToEdit.location}" not found for team "${shiftToEdit.team}". Defaulting to first option.`, true);
                 }
             }, 50); 
@@ -945,6 +994,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
         function prepareNewShift(date, shiftType) {
             editingShiftId = null;
             document.getElementById('shift-form').reset();
+            document.getElementById('redeploy-location-input').classList.add('hidden'); // Hide free text input on reset
             document.getElementById('logger-title').textContent = 'Log a New Shift';
             document.getElementById('save-assignment-btn').textContent = 'Log Assignment';
             
@@ -972,18 +1022,22 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 selectTeam('Others');
                 selectShift('Morning'); 
                 setTimeout(() => { 
+                    // Select OT in dropdown
                     document.getElementById('duty-location').value = 'OT'; 
                     document.getElementById('is-ot').checked = true;
                     document.getElementById('shift-hours').value = 0; 
+                    updateRedeployInputVisibility();
                 }, 0);
             } else if (shiftType) { 
                 selectTeam(initialTeam); 
                 selectShift(shiftType);
                 document.getElementById('shift-hours').value = 12; 
+                updateRedeployInputVisibility();
             } else {
                 selectTeam(initialTeam); 
                 selectShift('Morning');
                 document.getElementById('shift-hours').value = 12; 
+                updateRedeployInputVisibility();
             }
             
             toggleOverlay('logger-overlay');
@@ -1028,11 +1082,21 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
         async function saveAssignment() {
             const dateValue = document.getElementById('shift-date').value;
+            const dutyLocationSelect = document.getElementById('duty-location');
+            const redeployInput = document.getElementById('redeploy-location-input');
             
             if (!dateValue || !selectedShift) return showToast('Please select a date and shift.', true); 
             if (!userId) return showToast('You must be signed in.', true); 
             
-            const location = document.getElementById('duty-location').value;
+            let finalLocation = dutyLocationSelect.value;
+            
+            if (finalLocation === REDEPLOY_MARKER) {
+                finalLocation = redeployInput.value.trim();
+                if (!finalLocation) {
+                    return showToast('Please enter the Redeploy location.', true);
+                }
+            }
+
             const hours = parseFloat(document.getElementById('shift-hours').value);
             const isOT = document.getElementById('is-ot').checked;
 
@@ -1045,7 +1109,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 shiftTime: selectedShift === 'Morning' ? '08:00' : '20:00',
                 shift: selectedShift,
                 team: selectedTeam,
-                location: location,
+                location: finalLocation, // Saved location is either selected or free text
                 hours: hours, 
                 isOT: isOT 
             };
@@ -1074,6 +1138,23 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 if (tab) tab.classList.toggle('active', t === team.toLowerCase());
             });
             updateDutyLocationDropdown();
+            updateRedeployInputVisibility(); // Update visibility based on newly selected team
+        }
+
+        /**
+         * Toggles the visibility of the free-text input for Redeploy location.
+         */
+        function updateRedeployInputVisibility() {
+            const dutyLocationSelect = document.getElementById('duty-location');
+            const redeployInput = document.getElementById('redeploy-location-input');
+            
+            if (dutyLocationSelect.value === REDEPLOY_MARKER && selectedTeam === 'Others') {
+                redeployInput.classList.remove('hidden');
+                redeployInput.focus();
+            } else {
+                redeployInput.classList.add('hidden');
+                redeployInput.value = ''; // Clear value when hidden
+            }
         }
 
         // UPDATED: Filter duty location dropdown based on the selected team
@@ -1178,10 +1259,15 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             // Helper function to create the table rows for a specific team (Sentry or Foyer)
             const createTeamBreakdown = (teamLocations, shiftList) => {
                 // Map to store counts: Location -> { morning: count, night: count }
-                const countsMap = new Map(teamLocations.map(loc => [loc, { morning: 0, night: 0 }]));
+                // Use a Set to track all unique locations actually reported in this list
+                const allReportedLocations = new Set();
+                const countsMap = new Map();
+
+                teamLocations.forEach(loc => countsMap.set(loc, { morning: 0, night: 0 }));
 
                 shiftList.forEach(shift => {
-                    // Only process shifts relevant to the current team's locations
+                    allReportedLocations.add(shift.location);
+                    // Check if the shift location is a predefined location (Sentry/Foyer/Others dropdown value)
                     if (countsMap.has(shift.location)) {
                         const counts = countsMap.get(shift.location);
                         if (shift.shift === 'Morning') {
@@ -1189,15 +1275,34 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                         } else if (shift.shift === 'Night') {
                             counts.night += 1;
                         }
+                    } else if (teamLocations.includes(REDEPLOY_MARKER)) {
+                         // If we are reporting 'Others' (which contains REDEPLOY_MARKER), 
+                         // and the shift location is NOT a predefined location, treat it as a Redeploy free-text entry.
+                         // Use the shift.location (free text) as the key in the map
+                        const existing = countsMap.get(shift.location) || { morning: 0, night: 0 };
+                        if (shift.shift === 'Morning') {
+                            existing.morning += 1;
+                        } else if (shift.shift === 'Night') {
+                            existing.night += 1;
+                        }
+                        countsMap.set(shift.location, existing);
                     }
                 });
+                
+                // Collect all keys (predefined + dynamic free-text redeploy locations) for rendering order
+                const locationsToReport = Array.from(new Set([...teamLocations, ...Array.from(allReportedLocations)]))
+                    .filter(loc => countsMap.has(loc) || allReportedLocations.has(loc))
+                    // Filter out the REDEPLOY_MARKER itself, as its entries are covered by the free text locations
+                    .filter(loc => loc !== REDEPLOY_MARKER);
+
 
                 // Generate table rows
-                return teamLocations.map(loc => {
-                    const counts = countsMap.get(loc);
-                    const colorHex = LOCATION_COLORS[loc]?.hex || '#f3f4f6';
+                return locationsToReport.map(loc => {
+                    const counts = countsMap.get(loc) || { morning: 0, night: 0 };
+                    // For free-text locations, use a consistent color since they won't be in LOCATION_COLORS
+                    const colorInfo = LOCATION_COLORS[loc] || LOCATION_COLORS[REDEPLOY_MARKER];
+                    const colorHex = colorInfo.hex || '#f3f4f6';
                     
-                    // Include all locations (including zero counts)
                     return `
                         <tr>
                             <td style="padding: 8px; background-color:${colorHex}; border-radius: 4px;">${loc}</td>
@@ -1257,15 +1362,17 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             // --- 1. Calculate and build Sentry Frequency Table (Conditional on filter) ---
             let sentryTableHTML = '';
             if (userProfile.userLocationFilter === 'Sentry' || userProfile.userLocationFilter === 'Both') {
-                const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others');
-                const sentryRows = createTeamBreakdown(DUTY_LOCATIONS.Sentry, relevantShiftsForSentry);
+                // We only count Sentry and Others shifts for the Sentry breakdown
+                const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others'); 
+                const sentryLocationsToBreakdown = [...DUTY_LOCATIONS.Sentry, ...DUTY_LOCATIONS.Others];
+                const sentryRows = createTeamBreakdown(sentryLocationsToBreakdown, relevantShiftsForSentry);
                 
                 sentryTableHTML = `
-                    <h3>Sentry Frequency</h3>
+                    <h3>Sentry & Other Duties Frequency</h3>
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 50%;">Location</th>
+                                <th style="width: 50%;">Location / Duty</th>
                                 <th style="width: 25%;">Morning Shift</th>
                                 <th style="width: 25%;">Night Shift</th>
                             </tr>
@@ -1278,15 +1385,17 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             // --- 2. Calculate and build Foyer Frequency Table (Conditional on filter) ---
             let foyerTableHTML = '';
             if (userProfile.userLocationFilter === 'Foyer' || userProfile.userLocationFilter === 'Both') {
+                // We only count Foyer and Others shifts for the Foyer breakdown
                 const relevantShiftsForFoyer = shiftsForReport.filter(s => s.team === 'Foyer' || s.team === 'Others');
-                const foyerRows = createTeamBreakdown(DUTY_LOCATIONS.Foyer, relevantShiftsForFoyer);
+                const foyerLocationsToBreakdown = [...DUTY_LOCATIONS.Foyer, ...DUTY_LOCATIONS.Others];
+                const foyerRows = createTeamBreakdown(foyerLocationsToBreakdown, relevantShiftsForFoyer);
 
                 foyerTableHTML = `
-                    <h3>Foyer Frequency</h3>
+                    <h3>Foyer & Other Duties Frequency</h3>
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 50%;">Location</th>
+                                <th style="width: 50%;">Location / Duty</th>
                                 <th style="width: 25%;">Morning Shift</th>
                                 <th style="width: 25%;">Night Shift</th>
                             </tr>
@@ -1310,7 +1419,8 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             // 4. Build Enhanced Detailed Log Body
             const detailedLogBody = shiftsForReport.map(s => {
                 const isOTMark = s.isOT ? `<span style="color:#f59e0b; font-weight:700;">(OT)</span>` : '';
-                const locationColor = LOCATION_COLORS[s.location]?.hex || '#ffffff';
+                // Use a default color if location is free text (not in predefined list)
+                const locationColor = LOCATION_COLORS[s.location]?.hex || LOCATION_COLORS[REDEPLOY_MARKER].hex || '#ffffff';
                 
                 return `
                     <tr style="border-left: 5px solid ${locationColor};">
@@ -1788,7 +1898,8 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
                 if (loggedShift) {
                     // --- RENDER LOGGED SHIFT (OVERRIDE) ---
-                    const colorInfo = LOCATION_COLORS[loggedShift.location] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                    // Use a default color if location is free text (not in predefined list)
+                    const colorInfo = LOCATION_COLORS[loggedShift.location] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                     
                     let shiftIcon;
                     if (loggedShift.shift === 'Morning') {
