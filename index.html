@@ -1254,13 +1254,12 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             });
 
 
-            // --- 1. Calculate and build Sentry Frequency Table ---
-            const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others');
-            // Passed in all Sentry DUTY_LOCATIONS (includes the zero-count ones)
-            const sentryRows = createTeamBreakdown(DUTY_LOCATIONS.Sentry, relevantShiftsForSentry);
-            
+            // --- 1. Calculate and build Sentry Frequency Table (Conditional on filter) ---
             let sentryTableHTML = '';
-            if (DUTY_LOCATIONS.Sentry.length > 0) { // Always show the table if locations are defined
+            if (userProfile.userLocationFilter === 'Sentry' || userProfile.userLocationFilter === 'Both') {
+                const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others');
+                const sentryRows = createTeamBreakdown(DUTY_LOCATIONS.Sentry, relevantShiftsForSentry);
+                
                 sentryTableHTML = `
                     <h3>Sentry Frequency</h3>
                     <table>
@@ -1276,13 +1275,12 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 `;
             }
 
-
-            // --- 2. Calculate and build Foyer Frequency Table ---
-            const relevantShiftsForFoyer = shiftsForReport.filter(s => s.team === 'Foyer' || s.team === 'Others');
-            const foyerRows = createTeamBreakdown(DUTY_LOCATIONS.Foyer, relevantShiftsForFoyer);
-
+            // --- 2. Calculate and build Foyer Frequency Table (Conditional on filter) ---
             let foyerTableHTML = '';
-            if (DUTY_LOCATIONS.Foyer.length > 0) { // Always show the table if locations are defined
+            if (userProfile.userLocationFilter === 'Foyer' || userProfile.userLocationFilter === 'Both') {
+                const relevantShiftsForFoyer = shiftsForReport.filter(s => s.team === 'Foyer' || s.team === 'Others');
+                const foyerRows = createTeamBreakdown(DUTY_LOCATIONS.Foyer, relevantShiftsForFoyer);
+
                 foyerTableHTML = `
                     <h3>Foyer Frequency</h3>
                     <table>
