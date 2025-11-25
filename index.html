@@ -29,7 +29,7 @@
         .overlay.hidden { pointer-events: none; }
         .bottom-sheet { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); }
         .overlay:not(.hidden) .bottom-sheet { transform: translateY(0); }
-        #logger-card, #tools-card, #auth-card, #calendar-card, #team-manager-card, #edit-team-pattern-card { border-radius: 1.5rem 1.5rem 0 0; }
+        #logger-card, #tools-card, #auth-card, #calendar-card, #team-manager-card, #edit-team-pattern-card, #report-card { border-radius: 1.5rem 1.5rem 0 0; }
         .glass-input { background-color: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.3); }
         .team-selector-btn { border: 2px solid transparent; background-color: rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
         .team-selector-btn.active { border-color: #3b82f6; background-color: rgba(255, 255, 255, 0.7); }
@@ -317,6 +317,35 @@
                </div>
            </div>
         </div>
+        
+        <!-- NEW: Report Generator Overlay -->
+        <div id="report-generator-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
+            <div id="report-card" class="glass-card w-full max-w-lg bottom-sheet">
+                <header class="flex justify-between items-center p-4 border-b border-white/20 sticky top-0 glass-card z-10 rounded-t-2xl">
+                    <h1 class="text-xl font-bold">Generate Custom Report</h1>
+                    <button id="report-cancel-btn" class="font-semibold text-red-600 py-2 px-4 rounded-lg hover:bg-white/50">Cancel</button>
+                </header>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Report Date Range</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="start-date-input" class="block text-xs font-medium mb-1 text-gray-600">Start Date (Inclusive)</label>
+                                <input type="date" id="start-date-input" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="end-date-input" class="block text-xs font-medium mb-1 text-gray-600">End Date (Inclusive)</label>
+                                <input type="date" id="end-date-input" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">The report will cover all shifts logged between these two dates.</p>
+                    </div>
+                    
+                    <button id="generate-custom-report-btn" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg">Generate Report</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Bottom Action Bar -->
         <div class="fixed bottom-0 left-0 right-0 bg-white/50 backdrop-blur-sm border-t border-white/30 p-4 z-30">
             <div class="container mx-auto max-w-4xl">
@@ -609,7 +638,14 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             document.getElementById('tools-button').addEventListener('click', () => toggleOverlay('tools-overlay'));
             document.getElementById('tools-close-button').addEventListener('click', () => toggleOverlay('tools-overlay'));
             document.getElementById('save-assignment-btn').addEventListener('click', saveAssignment);
-            document.getElementById('generate-report-btn').addEventListener('click', generateReport);
+            
+            // UPDATED: generateReport now opens the date selection modal
+            document.getElementById('generate-report-btn').addEventListener('click', openReportGenerator);
+            
+            // NEW: Report Generator modal listeners
+            document.getElementById('report-cancel-btn').addEventListener('click', () => toggleOverlay('report-generator-overlay'));
+            document.getElementById('generate-custom-report-btn').addEventListener('click', generateCustomReport);
+
             document.getElementById('clear-history-btn').addEventListener('click', handleClearHistory);
             document.getElementById('morning-shift-btn').addEventListener('click', () => selectShift('Morning'));
             document.getElementById('night-shift-btn').addEventListener('click', () => selectShift('Night'));
@@ -1087,7 +1123,57 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
         function resetClearButton() { const clearBtn = document.getElementById('clear-history-btn'); clearBtn.dataset.confirming = ''; clearBtn.textContent = 'Clear History'; clearBtn.classList.replace('bg-yellow-500', 'bg-red-600'); clearBtn.classList.replace('hover:bg-yellow-600', 'hover:bg-red-700'); }
         
-        function generateReport() {
+        /**
+         * 1. Opens the date selection modal for custom report generation.
+         * The main generateReport button now calls this.
+         */
+        function openReportGenerator() {
+            toggleOverlay('tools-overlay'); // Close tools
+            
+            // Set default dates: first day of current month to last day of current month
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+
+            document.getElementById('start-date-input').value = firstDayOfMonth;
+            document.getElementById('end-date-input').value = lastDayOfMonth;
+            
+            toggleOverlay('report-generator-overlay'); // Open report modal
+        }
+
+        /**
+         * 2. Reads selected dates and triggers the report generation logic.
+         */
+        function generateCustomReport() {
+            const startDateString = document.getElementById('start-date-input').value;
+            const endDateString = document.getElementById('end-date-input').value;
+
+            if (!startDateString || !endDateString) {
+                return showToast('Please select both start and end dates.', true);
+            }
+
+            // Set time to start of day for accurate comparison
+            const startDate = new Date(startDateString + 'T00:00:00');
+            // Set time to end of day to include the full end date
+            const endDate = new Date(endDateString + 'T23:59:59'); 
+
+            if (startDate > endDate) {
+                return showToast('Start Date cannot be after End Date.', true);
+            }
+
+            toggleOverlay('report-generator-overlay');
+            
+            // Call the core report generation logic
+            _generateReportHTML(startDate, endDate);
+        }
+
+        /**
+         * 3. Core function to generate the HTML report based on a date range.
+         * This replaces the original `generateReport` function content and accepts a date range.
+         * @param {Date} startDate 
+         * @param {Date} endDate 
+         */
+        function _generateReportHTML(startDate, endDate) {
             
             // Helper function to create the table rows for a specific team (Sentry or Foyer)
             const createTeamBreakdown = (teamLocations, shiftList) => {
@@ -1124,23 +1210,42 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
 
             const rawShifts = allShifts.filter(s => isTeamRelevant(s.team));
-            let shiftsForMonth = rawShifts.filter(s => new Date(s.rawDate + 'T00:00:00').getFullYear() === displayedDate.getFullYear() && new Date(s.rawDate + 'T00:00:00').getMonth() === displayedDate.getMonth());
             
-            if (shiftsForMonth.length === 0) { 
-                showToast('No data to report for this month based on your location filter.', true); 
-                toggleOverlay('tools-overlay');
+            // Filter shifts based on the provided date range
+            let shiftsForReport = rawShifts.filter(s => {
+                // Parse shift date to include time for accurate comparison
+                const shiftDate = new Date(s.rawDate + 'T00:00:00');
+                
+                // Filter is: shiftDate >= startDate (start of day) && shiftDate <= endDate (end of day)
+                return shiftDate >= startDate && shiftDate <= endDate;
+            });
+            
+            if (shiftsForReport.length === 0) { 
+                showToast('No data to report for the selected date range based on your location filter.', true); 
                 return; 
             }
             
-            shiftsForMonth.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
-            const monthName = displayedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            shiftsForReport.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
             
+            // Format the report title based on single or multi-month range
+            const startDisplay = startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' });
+            const endDisplay = endDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' });
+            
+            let dateRangeTitle;
+            if (startDate.toDateString() === endDate.toDateString()) {
+                 dateRangeTitle = startDisplay;
+            } else if (startDate.getFullYear() === endDate.getFullYear() && startDate.getMonth() === endDate.getMonth()) {
+                 dateRangeTitle = `${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: 'numeric' })}`;
+            } else {
+                 dateRangeTitle = `${startDisplay} to ${endDisplay}`;
+            }
+
             let totalHours = 0;
             let totalMorningHours = 0;
             let totalNightHours = 0;
             let otHours = 0;
             
-            shiftsForMonth.forEach(s => { 
+            shiftsForReport.forEach(s => { 
                 // Calculate Totals for Summary
                 totalHours += s.hours; 
                 if (s.isOT) otHours += s.hours; 
@@ -1150,7 +1255,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
 
             // --- 1. Calculate and build Sentry Frequency Table ---
-            const relevantShiftsForSentry = shiftsForMonth.filter(s => s.team === 'Sentry' || s.team === 'Others');
+            const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others');
             // Passed in all Sentry DUTY_LOCATIONS (includes the zero-count ones)
             const sentryRows = createTeamBreakdown(DUTY_LOCATIONS.Sentry, relevantShiftsForSentry);
             
@@ -1173,7 +1278,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
 
 
             // --- 2. Calculate and build Foyer Frequency Table ---
-            const relevantShiftsForFoyer = shiftsForMonth.filter(s => s.team === 'Foyer' || s.team === 'Others');
+            const relevantShiftsForFoyer = shiftsForReport.filter(s => s.team === 'Foyer' || s.team === 'Others');
             const foyerRows = createTeamBreakdown(DUTY_LOCATIONS.Foyer, relevantShiftsForFoyer);
 
             let foyerTableHTML = '';
@@ -1205,7 +1310,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             }
 
             // 4. Build Enhanced Detailed Log Body
-            const detailedLogBody = shiftsForMonth.map(s => {
+            const detailedLogBody = shiftsForReport.map(s => {
                 const isOTMark = s.isOT ? `<span style="color:#f59e0b; font-weight:700;">(OT)</span>` : '';
                 const locationColor = LOCATION_COLORS[s.location]?.hex || '#ffffff';
                 
@@ -1242,7 +1347,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             `;
 
 
-            const reportHTML = `<html><head><title>Shift Tracker Report - ${monthName}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}h3{margin-top:1.5em;color:#555;}ul{list-style:none;padding:0;}ul li{margin-bottom:0.5em;font-size:1.1em;}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:0.95em;}th{background-color:#e5e7eb;font-weight:600;text-align:center;}th:first-child, td:first-child { text-align: left; }tr:nth-child(even) td{background-color:#f9fafb;}</style></head><body><h1>Shift Report</h1><h2>${monthName}</h2><h3>Summary</h3><ul><li>Total Hours (Logged): ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul>${breakdownHTML}<h3>Detailed Log</h3><table><thead><tr><th>Date</th><th>Shift</th><th>Location</th><th style="text-align: center; width: 15%;">Hours</th></tr></thead><tbody>${detailedLogBody}</tbody>${detailedLogFooter}</table></body></html>`;
+            const reportHTML = `<html><head><title>Shift Tracker Report - ${dateRangeTitle}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}h3{margin-top:1.5em;color:#555;}ul{list-style:none;padding:0;}ul li{margin-bottom:0.5em;font-size:1.1em;}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:0.95em;}th{background-color:#e5e7eb;font-weight:600;text-align:center;}th:first-child, td:first-child { text-align: left; }tr:nth-child(even) td{background-color:#f9fafb;}</style></head><body><h1>Shift Report</h1><h2>${dateRangeTitle}</h2><h3>Summary</h3><ul><li>Total Hours (Logged): ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul>${breakdownHTML}<h3>Detailed Log</h3><table><thead><tr><th>Date</th><th>Shift</th><th>Location</th><th style="text-align: center; width: 15%;">Hours</th></tr></thead><tbody>${detailedLogBody}</tbody>${detailedLogFooter}</table></body></html>`;
             
             try {
                 const blob = new Blob([reportHTML], { type: 'text/html' });
@@ -1257,9 +1362,13 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 console.error('Error generating report:', error);
                 showToast('An error occurred while generating the report.', true);
             }
-
-            toggleOverlay('tools-overlay');
         }
+        
+        // Aliasing the main function for the button listener
+        function generateReport() {
+            openReportGenerator();
+        }
+
 
         // --- ROSTER PATTERN/TEAM MANAGEMENT FUNCTIONS ---
         
