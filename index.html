@@ -21,7 +21,16 @@
         body::before, body::after { content: ''; position: fixed; border-radius: 50%; opacity: 0.5; filter: blur(80px); z-index: -1; }
         body::before { width: 300px; height: 300px; background: linear-gradient(to right, #e0c3fc, #8ec5fc); top: -100px; left: -100px; }
         body::after { width: 400px; height: 400px; background: linear-gradient(to right, #fbc2eb, #a6c1ee); bottom: -150px; right: -150px; }
-        .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
+        
+        /* FIX: Adjusted glass-card to keep backdrop blur, but we will selectively remove it from #calendar-card */
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.6); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); 
+        }
+
         .gradient-bg { background: linear-gradient(to right, #1e3a8a, #3b82f6); }
         .btn { transition: all 0.2s ease-in-out; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); }
@@ -34,7 +43,14 @@
         .team-selector-btn { border: 2px solid transparent; background-color: rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
         .team-selector-btn.active { border-color: #3b82f6; background-color: rgba(255, 255, 255, 0.7); }
         .location-tag, .ot-tag { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.8rem; display: inline-block; }
-
+        
+        /* --- FIX: Remove blur from Calendar Card to resolve blurriness issue --- */
+        #calendar-card {
+            backdrop-filter: none !important; 
+            -webkit-backdrop-filter: none !important;
+            background: rgba(255, 255, 255, 0.95); /* Use solid color instead of blurry glass */
+        }
+        
         /* --- FINAL CALENDAR VIEW STYLES --- */
         #calendar-grid {
             grid-auto-rows: minmax(6rem, auto);
@@ -103,14 +119,23 @@
         }
 
         .location-text {
-            font-size: 0.75rem;
+            font-size: 0.7rem; /* Reduced size slightly for more room */
             font-weight: 600;
-            max-width: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
+            width: 100%;
             padding: 0 4px;
-            color: #333; /* Dark text for better contrast */
+            color: #333; 
+            flex-shrink: 0;
+            text-align: center;
+            margin-top: 2px;
+            
+            /* FIX: Allow two lines and smart break for long words */
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit to 2 lines */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word; 
+            line-height: 1.1; /* Slightly tighter line height */
+            height: 1.6rem; /* fixed height for 2 lines */
         }
         
         .hours-text {
@@ -160,6 +185,12 @@
         .auto-shift-text {
             font-size: 1rem;
             margin-top: 4px;
+        }
+        
+        /* Specific fix for night icon to center the crescent moon visually */
+        .night-icon-svg path {
+             /* ensures the moon shape is drawn correctly relative to its container */
+            transform: translate(0, 0); 
         }
     </style>
 </head>
@@ -503,8 +534,8 @@
         };
         const ICONS = { 
             morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500 shift-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, 
-            // NEW ICON: Simple Crescent Moon
-            night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-700 shift-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`, 
+            // FIX: Added transform to visually center the moon icon better
+            night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-700 shift-icon night-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" transform="translate(0, 0)"></path></svg>`, 
             others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 shift-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>`,
             sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, 
             foyer: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>` 
@@ -910,13 +941,25 @@
             noHistory.style.display = shiftsForMonth.length === 0 ? 'block' : 'none';
             historyList.style.display = shiftsForMonth.length > 0 ? 'block' : 'none';
             
-            const sortedList = [...shiftsForMonth].sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+            const sortedList = [...shiftsForMonth].sort((a, b) => new Date(b.rawDate) - new Date(b.rawDate));
 
             if (sortedList.length === 0) { historyList.innerHTML = ''; return; }
 
             const shiftsHTML = sortedList.map(shift => {
                 // Determine color: if location is Redeploy, use a generic color, otherwise look up.
-                const colorInfo = LOCATION_COLORS[shift.location] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                let displayLocation = shift.location;
+                let colorKey = shift.location;
+                
+                if (displayLocation.startsWith('AdHoc_')) {
+                    // For display outside of calendar, show AdHoc prefix cleanly
+                    displayLocation = `AdHoc: ${displayLocation.replace('AdHoc_', '')}`;
+                    colorKey = ADHOC_MARKER;
+                } else if (displayLocation.startsWith('Redeploy_')) {
+                    displayLocation = `Redeploy: ${displayLocation.replace('Redeploy_', '')}`;
+                    colorKey = REDEPLOY_MARKER;
+                }
+                
+                const colorInfo = LOCATION_COLORS[colorKey] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800' };
                 
                 let shiftIcon;
                 if (shift.shift === 'Morning') {
@@ -941,7 +984,7 @@
                                 <p class="text-xs text-gray-600 uppercase">${shiftDate.toLocaleDateString('en-US', { weekday: 'short' })}</p>
                             </div>
                             <div class="pl-4 border-l border-white/20">${shiftIcon}</div>
-                            <span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${shift.location}</span>
+                            <span class="location-tag font-bold ${colorInfo.bg} ${colorInfo.text}">${displayLocation}</span>
                         </div>
                         <div class="flex items-center gap-4">
                             ${hoursDisplay}
@@ -1002,24 +1045,25 @@
                 const relevantLocations = DUTY_LOCATIONS[shiftToEdit.team] || DUTY_LOCATIONS['Others'];
                 
                 let locationFound = false;
+                let savedLocation = shiftToEdit.location;
 
                 // 1. Check if the saved location is one of the predefined list options
-                if (relevantLocations.includes(shiftToEdit.location)) {
-                    dutyLocation.value = shiftToEdit.location; 
+                if (relevantLocations.includes(savedLocation)) {
+                    dutyLocation.value = savedLocation; 
                     redeployInput.classList.add('hidden');
                     locationFound = true;
                 } 
-                // 2. Check if the saved location is an AdHoc_FreeText (starts with prefix)
-                else if (shiftToEdit.location.startsWith('AdHoc_') && shiftToEdit.team === 'Others') {
-                     const freeText = shiftToEdit.location.replace('AdHoc_', '');
+                // 2. Check if the saved location is AdHoc_FreeText (starts with prefix)
+                else if (savedLocation.startsWith('AdHoc_') && shiftToEdit.team === 'Others') {
+                     const freeText = savedLocation.replace('AdHoc_', '');
                      dutyLocation.value = ADHOC_MARKER;
                      redeployInput.value = freeText;
                      redeployInput.classList.remove('hidden');
                      locationFound = true;
                 } 
                  // 3. Check if saved location is Redeploy_FreeText
-                else if (shiftToEdit.location.startsWith('Redeploy_') && shiftToEdit.team === 'Others') {
-                     const freeText = shiftToEdit.location.replace('Redeploy_', '');
+                else if (savedLocation.startsWith('Redeploy_') && shiftToEdit.team === 'Others') {
+                     const freeText = savedLocation.replace('Redeploy_', '');
                      dutyLocation.value = REDEPLOY_MARKER;
                      redeployInput.value = freeText;
                      redeployInput.classList.remove('hidden');
@@ -1683,7 +1727,7 @@
             }
             
             // If location is AdHoc, Training, CNB, FIRST AID, etc., ensure team is Others
-            else if (['AL', 'MC', 'OT', 'Training', 'CNB', 'FIRST AID', 'AED', OFF_DAY_MARKER, REDEPLOY_MARKER].includes(location) || location.startsWith('AdHoc_')) {
+            else if (['AL', 'MC', 'OT', 'Training', 'CNB', 'FIRST AID', 'AED', OFF_DAY_MARKER, REDEPLOY_MARKER, ADHOC_MARKER].includes(location) || location.startsWith('AdHoc_') || location.startsWith('Redeploy_')) {
                 team = 'Others';
             } else if (location.includes('X-RAY') || location.includes('VERTICAL PROWLER')) {
                 team = 'Foyer';
@@ -2280,16 +2324,19 @@
                         shiftIcon = ICONS.others;
                     }
                     
-                    // Condense location text for smaller calendar cells
+                    // Condense location text for small calendar cells
                     let displayLocation = loggedShift.location;
                     if (displayLocation.startsWith('AdHoc_')) {
-                         displayLocation = 'AdHoc:' + displayLocation.substring(6, 12);
+                         displayLocation = 'AdHoc: ' + displayLocation.replace('AdHoc_', '');
                     } else if (displayLocation.startsWith('Redeploy_')) {
-                         displayLocation = 'R/D:' + displayLocation.substring(9, 15);
-                    } else if (displayLocation.length > 7 && displayLocation !== 'OE / STANDBY') {
-                        displayLocation = displayLocation.substring(0, 7) + '...';
+                         displayLocation = 'R/D: ' + displayLocation.replace('Redeploy_', '');
+                    } 
+                    
+                    // Further truncate / Abbreviate for display within the box
+                    if (displayLocation.length > 15) {
+                         displayLocation = displayLocation.substring(0, 12) + '...';
                     } else {
-                        displayLocation = displayLocation.replace(' (CNB DST)', ' N1').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X');
+                        displayLocation = displayLocation.replace(' (CNB DST)', ' N1').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X').replace('GUARD HOUSE', 'G HOUSE');
                     }
 
 
