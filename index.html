@@ -377,7 +377,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDoc, doc, getDocs, updateDoc, setDoc, getDoc, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // NOTE: Only import the core Firestore functions needed here to prevent module conflicts during dynamic imports
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, getDocs, updateDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Set log level to debug to help diagnose Firestore issues
         setLogLevel('debug');
@@ -1310,7 +1311,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                     
                     return `
                         <tr>
-                            <td style="padding: 8px; background-color:${colorHex}; border-radius: 4px;">${loc}</td>
+                            <td style="padding: 8px; background-color:${colorInfo.bg}; border-radius: 4px;">${loc}</td>
                             <td style="padding: 8px; text-align: center;">${counts.morning}</td>
                             <td style="padding: 8px; text-align: center;">${counts.night}</td>
                         </tr>
@@ -1503,7 +1504,8 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 try {
                     // Dynamically import the importer script and run the function
                     const module = await import(`./${scriptName}`);
-                    await module[functionName](db, userId, showToast);
+                    // Call the exported function using bracket notation
+                    await module[functionName](db, userId, showToast); 
                     // On success, the application will reload due to window.location.reload() inside the import script.
                 } catch (error) {
                     console.error(`Failed to load or execute ${monthName} importer script:`, error);
@@ -1516,7 +1518,10 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                     importButton.classList.replace('bg-gray-400', 'bg-white/50');
                     importButton.classList.replace('text-white', 'text-green-600');
                     importButton.classList.replace('hover:bg-yellow-600', 'hover:bg-white/80');
-                    toggleOverlay('tools-overlay'); // Close tools modal
+                    // Only close overlay if the UI hasn't been reloaded
+                    if (document.getElementById('tools-overlay') && !document.getElementById('tools-overlay').classList.contains('hidden')) {
+                        toggleOverlay('tools-overlay'); 
+                    }
                 }
 
             } else {
