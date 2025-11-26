@@ -38,13 +38,13 @@
         .overlay.hidden { pointer-events: none; }
         .bottom-sheet { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); }
         .overlay:not(.hidden) .bottom-sheet { transform: translateY(0); }
-        #logger-card, #tools-card, #auth-card, #calendar-card, #team-manager-card, #edit-team-pattern-card, #report-card { border-radius: 1.5rem 1.5rem 0 0; }
+        #logger-card, #tools-card, #auth-card, #calendar-card, #team-manager-card, #edit-team-pattern-card, #report-card, #profile-card { border-radius: 1.5rem 1.5rem 0 0; }
         .glass-input { background-color: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.3); }
         .team-selector-btn { border: 2px solid transparent; background-color: rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
         .team-selector-btn.active { border-color: #3b82f6; background-color: rgba(255, 255, 255, 0.7); }
         .location-tag, .ot-tag { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.8rem; display: inline-block; }
         
-        /* --- FIX: Remove blur from Calendar Card to resolve blurriness issue --- */
+        /* FIX: Remove blur from Calendar Card to resolve blurriness issue */
         #calendar-card {
             backdrop-filter: none !important; 
             -webkit-backdrop-filter: none !important;
@@ -373,6 +373,28 @@
            </div>
         </div>
 
+        <!-- Profile Settings Overlay -->
+        <div id="profile-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
+            <div id="profile-card" class="glass-card w-full max-w-lg bottom-sheet">
+                <header class="flex justify-between items-center p-4 border-b border-white/20 sticky top-0 glass-card z-10 rounded-t-2xl">
+                    <h1 class="text-xl font-bold">Profile Settings</h1>
+                    <button id="profile-cancel-btn" class="font-semibold text-red-600 py-2 px-4 rounded-lg hover:bg-white/50">Cancel</button>
+                </header>
+                <div class="p-6 space-y-6">
+                    <p class="text-sm text-gray-600">These details will be included in your generated reports.</p>
+                    <div>
+                        <label for="profile-name-input" class="block text-sm font-medium mb-1 text-gray-600">Full Name</label>
+                        <input type="text" id="profile-name-input" placeholder="Your Name" class="glass-input w-full p-2.5 rounded-lg shadow-sm">
+                    </div>
+                     <div>
+                        <label for="profile-employee-id-input" class="block text-sm font-medium mb-1 text-gray-600">Employee ID</label>
+                        <input type="text" id="profile-employee-id-input" placeholder="e.g., S1234567A" class="glass-input w-full p-2.5 rounded-lg shadow-sm">
+                    </div>
+                    <button id="save-profile-btn" class="btn w-full gradient-bg text-white font-bold py-3 px-4 rounded-lg shadow-lg">Save Profile Details</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Tools Action Sheet Overlay -->
         <div id="tools-overlay" class="fixed inset-0 bg-black bg-opacity-30 flex items-end justify-center hidden z-50 opacity-0 overlay">
              <div id="tools-card" class="glass-card w-full max-w-4xl bottom-sheet">
@@ -381,6 +403,9 @@
                    <button id="tools-close-button" class="font-semibold text-blue-600 py-2 px-4 rounded-lg hover:bg-white/50">Close</button>
                </header>
                <div class="p-6 space-y-4">
+                    <!-- NEW: Profile button -->
+                    <button id="profile-settings-btn" class="btn w-full bg-white/50 border border-purple-600 text-purple-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Profile Settings</button>
+
                     <!-- Updated button text and visibility logic in JS -->
                     <button id="manage-teams-btn" class="btn w-full bg-white/50 border border-indigo-600 text-indigo-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Team Settings</button>
                     <button id="generate-report-btn" class="btn w-full bg-white/50 border border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Generate Report</button>
@@ -475,13 +500,20 @@
         const db = getFirestore(app);
 
         // --- GLOBAL STATE ---
+        const CONTRACTUAL_HOURS = 240; // Fixed contractual planned hours
         let userId = null;
         let shiftsUnsubscribe = null;
         let teamsUnsubscribe = null;
         let profileUnsubscribe = null;
         let allShifts = [];
         let allTeams = []; // [{ id, teamName, anchor, patternLength, pattern: [] }]
-        let userProfile = { userTeamId: null, userLocationFilter: 'Both' }; 
+        // UPDATED: Added user profile fields here
+        let userProfile = { 
+            userTeamId: null, 
+            userLocationFilter: 'Both',
+            userName: '',         // NEW: User's full name
+            employeeId: '',       // NEW: User's employee ID
+        }; 
         let isAdmin = false; 
 
         let editingTeam = null; 
@@ -493,15 +525,13 @@
         let clearConfirmationTimeout = null;
         
         // --- CONSTANTS ---
-        // UPDATED: Added ADHOC_MARKER for free text AdHoc entry
         const REDEPLOY_MARKER = 'Redeploy location';
         const ADHOC_MARKER = 'AdHoc Details'; 
-        const OFF_DAY_MARKER = 'Off Day'; // New marker for clean manual logging of 0-hour off days
+        const OFF_DAY_MARKER = 'Off Day'; 
         const DUTY_LOCATIONS = { 
             Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], 
             Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], 
-            // UPDATED: Removed static 'AdHoc' and replaced with free-text marker
-            Others: ['OT', 'Training', 'AL', 'MC', OFF_DAY_MARKER, REDEPLOY_MARKER, ADHOC_MARKER] 
+            Others: ['Training', 'AL', 'MC', OFF_DAY_MARKER, REDEPLOY_MARKER, ADHOC_MARKER] 
         };
         const SHIFT_TEAMS = ['Sentry', 'Foyer', 'Others'];
         const SHIFT_TYPES = ['M', 'N', 'OFF']; 
@@ -519,7 +549,6 @@
             'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 
             'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 
             'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 
-            // Using a distinct color for ad-hoc free-text and redeploy entries
             'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 
             'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 
             'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 
@@ -527,14 +556,12 @@
             [OFF_DAY_MARKER]: { bg: 'bg-green-100', text: 'text-green-800', hex: '#dcfce7' },
             [REDEPLOY_MARKER]: { bg: 'bg-purple-100', text: 'text-purple-800', hex: '#f3e8ff' },
             [ADHOC_MARKER]: { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' },
-            // Colors for miscellaneous duties
             'FIRST AID': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
             'AED': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
             'CNB': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' }
         };
         const ICONS = { 
             morning: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500 shift-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`, 
-            // FIX: Added transform to visually center the moon icon better
             night: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-700 shift-icon night-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" transform="translate(0, 0)"></path></svg>`, 
             others: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 shift-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>`,
             sentry: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, 
@@ -568,7 +595,7 @@
                 if (profileUnsubscribe) profileUnsubscribe();
                 allShifts = [];
                 allTeams = [];
-                userProfile = { userTeamId: null, userLocationFilter: 'Both' }; 
+                userProfile = { userTeamId: null, userLocationFilter: 'Both', userName: '', employeeId: '' }; 
                 updateUIForGuest();
             }
         });
@@ -692,15 +719,53 @@
                 if (docSnap.exists()) {
                     userProfile = {
                         userTeamId: docSnap.data().userTeamId || null,
-                        userLocationFilter: docSnap.data().userLocationFilter || 'Both', 
+                        userLocationFilter: docSnap.data().userLocationFilter || 'Both',
+                        // UPDATED: Capture name and ID from profile settings
+                        userName: docSnap.data().userName || '',
+                        employeeId: docSnap.data().employeeId || '', 
                     };
                 } else {
-                    userProfile = { userTeamId: null, userLocationFilter: 'Both' };
+                    // Initialize empty profile if none exists
+                    userProfile = { userTeamId: null, userLocationFilter: 'Both', userName: '', employeeId: '' };
+                }
+                // Update profile inputs if modal is open
+                if (!document.getElementById('profile-overlay').classList.contains('hidden')) {
+                     loadProfileSettings();
                 }
                 renderHistory(); 
             }, (error) => {
                 console.error("Error listening to profile:", error);
             });
+        }
+
+        // --- PROFILE SETTINGS HANDLERS (NEW) ---
+
+        function openProfileSettings() {
+            loadProfileSettings();
+            toggleOverlay('profile-overlay');
+            toggleOverlay('tools-overlay');
+        }
+        
+        function loadProfileSettings() {
+            document.getElementById('profile-name-input').value = userProfile.userName;
+            document.getElementById('profile-employee-id-input').value = userProfile.employeeId;
+        }
+
+        async function saveProfileSettings() {
+            if (!userId) return showToast('You must be signed in.', true); 
+            
+            const userName = document.getElementById('profile-name-input').value.trim();
+            const employeeId = document.getElementById('profile-employee-id-input').value.trim();
+
+            const profileDocRef = doc(db, `users/${userId}/settings`, 'profile');
+            try {
+                await setDoc(profileDocRef, { userName, employeeId }, { merge: true });
+                showToast('Profile details saved successfully!');
+                toggleOverlay('profile-overlay');
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                showToast('Failed to save profile details.', true);
+            }
         }
 
         // --- EVENT LISTENERS ---
@@ -753,6 +818,11 @@
             // UPDATED: generateReport now opens the date selection modal
             document.getElementById('generate-report-btn').addEventListener('click', openReportGenerator);
             
+            // NEW: Profile Settings listeners
+            document.getElementById('profile-settings-btn').addEventListener('click', openProfileSettings);
+            document.getElementById('save-profile-btn').addEventListener('click', saveProfileSettings);
+            document.getElementById('profile-cancel-btn').addEventListener('click', () => toggleOverlay('profile-overlay'));
+
             // NEW: Report Generator modal listeners
             document.getElementById('report-cancel-btn').addEventListener('click', () => toggleOverlay('report-generator-overlay'));
             document.getElementById('generate-custom-report-btn').addEventListener('click', generateCustomReport);
@@ -811,9 +881,13 @@
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 
-                // Save location filter to user profile immediately
+                // Save location filter and default empty profile fields immediately
                 const profileDocRef = doc(db, `users/${userCredential.user.uid}/settings`, 'profile');
-                await setDoc(profileDocRef, { userLocationFilter: locationFilter }, { merge: true });
+                await setDoc(profileDocRef, { 
+                    userLocationFilter: locationFilter,
+                    userName: '',
+                    employeeId: '',
+                }, { merge: true });
 
                 toggleOverlay('auth-overlay');
                 
@@ -893,47 +967,14 @@
                 return shiftDate.getFullYear() === year && shiftDate.getMonth() === month;
             });
             
-            let plannedHours = 0;
-            let loggedHours = 0; // NEW: Logged hours initialization
-            // OT hours calculation is simplified to use reduce on the logged shifts only
-            let otHours = shiftsForMonth.filter(s => s.isOT).reduce((acc, s) => acc + s.hours, 0);
-
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            // Map to quickly look up logged shifts by day number (1-indexed)
-            const loggedShiftsByDay = new Map();
-            shiftsForMonth.forEach(shift => {
-                const day = new Date(shift.rawDate + 'T00:00:00').getDate();
-                loggedShiftsByDay.set(day, shift);
-            });
-
-            // --- PLANNED HOURS & LOGGED HOURS CALCULATION ---
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const loggedShift = loggedShiftsByDay.get(day);
-                
-                if (loggedShift) {
-                    // Logged Hours (Actual hours worked)
-                    loggedHours += loggedShift.hours;
-                    
-                    // Planned Hours (When logged, count the logged hours)
-                    plannedHours += loggedShift.hours;
-                    
-                } else if (activeTeamPattern && userProfile.userTeamId) {
-                    // If no shift is logged, check the automatic pattern for future planning
-                    const autoShift = getAutoShiftForDay(day, year, month, activeTeamPattern);
-                    
-                    if (autoShift && (autoShift.type === 'M' || autoShift.type === 'N')) {
-                        // Assume a 12-hour shift for automatic Planned calculation
-                        plannedHours += 12; 
-                    }
-                }
-            }
-            // --- END CALCULATION ---
-
+            // --- NEW CALCULATION LOGIC ---
+            const loggedHours = shiftsForMonth.reduce((acc, s) => acc + s.hours, 0);
+            const plannedHours = CONTRACTUAL_HOURS; // Fixed based on request
+            const otHours = Math.max(0, loggedHours - CONTRACTUAL_HOURS); // Logged - Planned = OT (if positive)
+            // --- END NEW CALCULATION LOGIC ---
             
             document.getElementById('planned-hours').textContent = plannedHours;
-            document.getElementById('logged-hours').textContent = loggedHours; // NEW: Update logged hours display
+            document.getElementById('logged-hours').textContent = loggedHours;
             document.getElementById('ot-hours').textContent = otHours;
 
             const historyList = document.getElementById('history-list');
@@ -1400,19 +1441,17 @@
             // Helper function to create the table rows for a specific team (Sentry or Foyer)
             const createTeamBreakdown = (teamLocations, shiftList) => {
                 // Map to store counts: Location -> { morning: count, night: count }
-                // Use a Set to track all unique locations actually reported in this list
                 const allReportedLocations = new Set();
                 const countsMap = new Map();
 
-                // Initialize counts map with all predefined locations
+                // Initialize counts map with all predefined locations and markers
                 teamLocations.forEach(loc => countsMap.set(loc, { morning: 0, night: 0 }));
 
                 shiftList.forEach(shift => {
                     allReportedLocations.add(shift.location);
                     
-                    // If the shift location is NOT a predefined location (and we are checking 'Others'), 
-                    // check if it's a known prefixed free text entry or a completely custom one.
-                    if (!countsMap.has(shift.location) && (teamLocations.includes(REDEPLOY_MARKER) || teamLocations.includes(ADHOC_MARKER))) {
+                    // If the shift location is NOT a predefined location, initialize its count entry
+                    if (!countsMap.has(shift.location)) {
                          countsMap.set(shift.location, { morning: 0, night: 0 });
                     }
                     
@@ -1427,18 +1466,19 @@
                 });
                 
                 // Collect all unique locations reported (predefined + dynamic free-text redeploy locations)
-                // Filter out the REDEPLOY_MARKER and ADHOC_MARKER themselves
-                const markersToRemove = [REDEPLOY_MARKER, ADHOC_MARKER];
+                // Filter out the REDEPLOY_MARKER and ADHOC_MARKER themselves, and the OT marker since we removed it from DUTY_LOCATIONS
+                const markersToRemove = [REDEPLOY_MARKER, ADHOC_MARKER, 'OT'];
                 
                 const locationsToReport = Array.from(new Set([...teamLocations, ...Array.from(allReportedLocations)]))
-                    .filter(loc => (countsMap.has(loc) || allReportedLocations.has(loc)) && !markersToRemove.includes(loc))
-                    // Sort the reported locations alphabetically
+                    .filter(loc => !markersToRemove.includes(loc))
                     .sort((a, b) => a.localeCompare(b));
 
 
                 // Generate table rows
                 return locationsToReport.map(loc => {
                     const counts = countsMap.get(loc) || { morning: 0, night: 0 };
+                    
+                    // Do NOT skip rows where the count is 0 (required by user)
                     
                     // Determine color: If prefixed AdHoc/Redeploy, use the ADHOC_MARKER color fallback.
                     const isPrefixedFreeText = loc.startsWith('AdHoc_') || loc.startsWith('Redeploy_');
@@ -1464,10 +1504,7 @@
             
             // Filter shifts based on the provided date range
             let shiftsForReport = rawShifts.filter(s => {
-                // Parse shift date to include time for accurate comparison
                 const shiftDate = new Date(s.rawDate + 'T00:00:00');
-                
-                // Filter is: shiftDate >= startDate (start of day) && shiftDate <= endDate (end of day)
                 return shiftDate >= startDate && shiftDate <= endDate;
             });
             
@@ -1478,7 +1515,29 @@
             
             shiftsForReport.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
             
-            // Format the report title based on single or multi-month range
+            // Calculate totals
+            let totalHours = 0;
+            let totalMorningHours = 0;
+            let totalNightHours = 0;
+            let totalOTShifts = 0; 
+            let totalMorningOTShifts = 0; 
+            let totalNightOTShifts = 0;  
+            
+            shiftsForReport.forEach(s => { 
+                totalHours += s.hours; 
+                if (s.isOT) {
+                    totalOTShifts++; 
+                    if (s.shift === 'Morning') totalMorningOTShifts++;
+                    if (s.shift === 'Night') totalNightOTShifts++;
+                }
+                if (s.shift === 'Morning') totalMorningHours += s.hours;
+                if (s.shift === 'Night') totalNightHours += s.hours;
+            });
+
+            // Recalculate OT Hours based on contractual hours
+            const otHoursSummary = Math.max(0, totalHours - CONTRACTUAL_HOURS);
+            
+            // Format the report title
             const startDisplay = startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' });
             const endDisplay = endDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' });
             
@@ -1491,25 +1550,23 @@
                  dateRangeTitle = `${startDisplay} to ${endDisplay}`;
             }
 
-            let totalHours = 0;
-            let totalMorningHours = 0;
-            let totalNightHours = 0;
-            let otHours = 0;
-            
-            shiftsForReport.forEach(s => { 
-                // Calculate Totals for Summary
-                totalHours += s.hours; 
-                if (s.isOT) otHours += s.hours; 
-                if (s.shift === 'Morning') totalMorningHours += s.hours;
-                if (s.shift === 'Night') totalNightHours += s.hours;
-            });
+            // --- HEADER METADATA ---
+            const userMetadataHTML = `
+                <div style="margin-bottom: 1.5em; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                    <p style="margin: 0 0 5px 0; font-size: 1.1em; font-weight: 600;">Report For:</p>
+                    <ul style="list-style: none; padding: 0; font-size: 0.95em;">
+                        <li><strong>Name:</strong> ${userProfile.userName || 'N/A (Update in Profile Settings)'}</li>
+                        <li><strong>Employee ID:</strong> ${userProfile.employeeId || 'N/A (Update in Profile Settings)'}</li>
+                        <li><strong>Email:</strong> ${auth.currentUser?.email || 'N/A'}</li>
+                    </ul>
+                </div>
+            `;
 
 
             // --- 1. Calculate and build Sentry Frequency Table (Conditional on filter) ---
             let sentryTableHTML = '';
             if (userProfile.userLocationFilter === 'Sentry' || userProfile.userLocationFilter === 'Both') {
-                // We only count Sentry and Others shifts for the Sentry breakdown
-                const relevantShiftsForSentry = shiftsForReport.filter(s => s.team === 'Sentry' || s.team === 'Others'); 
+                const relevantShiftsForSentry = shiftsForReport.filter(s => isTeamRelevant(s.team)); 
                 const sentryLocationsToBreakdown = [...DUTY_LOCATIONS.Sentry, ...DUTY_LOCATIONS.Others];
                 const sentryRows = createTeamBreakdown(sentryLocationsToBreakdown, relevantShiftsForSentry);
                 
@@ -1531,8 +1588,7 @@
             // --- 2. Calculate and build Foyer Frequency Table (Conditional on filter) ---
             let foyerTableHTML = '';
             if (userProfile.userLocationFilter === 'Foyer' || userProfile.userLocationFilter === 'Both') {
-                // We only count Foyer and Others shifts for the Foyer breakdown
-                const relevantShiftsForFoyer = shiftsForReport.filter(s => s.team === 'Foyer' || s.team === 'Others');
+                const relevantShiftsForFoyer = shiftsForReport.filter(s => isTeamRelevant(s.team));
                 const foyerLocationsToBreakdown = [...DUTY_LOCATIONS.Foyer, ...DUTY_LOCATIONS.Others];
                 const foyerRows = createTeamBreakdown(foyerLocationsToBreakdown, relevantShiftsForFoyer);
 
@@ -1562,7 +1618,35 @@
                 `;
             }
 
-            // 4. Build Enhanced Detailed Log Body
+            // 4. Build OT Shift Breakdown Table (New Section)
+            const otBreakdownHTML = `
+                <h3 style="margin-top: 2em;">Overtime Shift Breakdown (Count)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Shift Type (Flagged OT)</th>
+                            <th style="width: 50%;">Shift Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px;">Morning OT Shifts</td>
+                            <td style="padding: 8px; text-align: center;">${totalMorningOTShifts}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;">Night OT Shifts</td>
+                            <td style="padding: 8px; text-align: center;">${totalNightOTShifts}</td>
+                        </tr>
+                        <tr style="font-weight: 700; background-color: #fef3c7;">
+                            <td style="padding: 8px;">TOTAL OT SHIFTS LOGGED:</td>
+                            <td style="padding: 8px; text-align: center;">${totalOTShifts}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+
+
+            // 5. Build Enhanced Detailed Log Body
             const detailedLogBody = shiftsForReport.map(s => {
                 const isOTMark = s.isOT ? `<span style="color:#f59e0b; font-weight:700;">(OT)</span>` : '';
                 
@@ -1591,7 +1675,7 @@
                 `;
             }).join('');
             
-            // 5. Build Detailed Log Footer
+            // 6. Build Detailed Log Footer
             const detailedLogFooter = `
                 <tfoot>
                     <tr style="background-color: #e0f2fe; font-weight: 700; border-top: 2px solid #3b82f6;">
@@ -1607,14 +1691,14 @@
                         <td style="text-align: center; padding: 8px;">${totalNightHours}</td>
                     </tr>
                     <tr style="background-color: #fffbeb; font-weight: 600;">
-                        <td colspan="3" style="text-align: right; padding: 10px; color:#b45309;">TOTAL OVERTIME HOURS:</td>
-                        <td style="text-align: center; padding: 10px; color:#b45309;">${otHours}</td>
+                        <td colspan="3" style="text-align: right; padding: 10px; color:#b45309;">OVERTIME HOURS:</td>
+                        <td style="text-align: center; padding: 10px; color:#b45309;">${otHoursSummary}</td>
                     </tr>
                 </tfoot>
             `;
 
 
-            const reportHTML = `<html><head><title>Shift Tracker Report - ${dateRangeTitle}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}h3{margin-top:1.5em;color:#555;}ul{list-style:none;padding:0;}ul li{margin-bottom:0.5em;font-size:1.1em;}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:0.95em;}th{background-color:#e5e7eb;font-weight:600;text-align:center;}th:first-child, td:first-child { text-align: left; }tr:nth-child(even) td{background-color:#f9fafb;}</style></head><body><h1>Shift Report</h1><h2>${dateRangeTitle}</h2><h3>Summary</h3><ul><li>Total Hours (Logged): ${totalHours}</li><li>Overtime Hours: ${otHours}</li></ul>${breakdownHTML}<h3>Detailed Log</h3><table><thead><tr><th>Date</th><th>Shift</th><th>Location</th><th style="text-align: center; width: 15%;">Hours</th></tr></thead><tbody>${detailedLogBody}</tbody>${detailedLogFooter}</table></body></html>`;
+            const reportHTML = `<html><head><title>Shift Tracker Report - ${dateRangeTitle}</title><style>body{font-family:sans-serif;margin:2em;}h1,h2{text-align:center;color:#333}h3{margin-top:1.5em;color:#555;}ul{list-style:none;padding:0;}ul li{margin-bottom:0.5em;font-size:1.1em;}table{width:100%;border-collapse:collapse;margin-top:1em;margin-bottom:2em}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:0.95em;}th{background-color:#e5e7eb;font-weight:600;text-align:center;}th:first-child, td:first-child { text-align: left; }tr:nth-child(even) td{background-color:#f9fafb;}</style></head><body><h1>Shift Report</h1><h2>${dateRangeTitle}</h2>${userMetadataHTML}<h3>Summary</h3><ul><li>Planned Hours (Contract): ${CONTRACTUAL_HOURS}</li><li>Total Logged Hours: ${totalHours}</li><li>Overtime Hours: ${otHoursSummary}</li></ul>${breakdownHTML}${otBreakdownHTML}<h3>Detailed Log</h3><table><thead><tr><th>Date</th><th>Shift</th><th>Location</th><th style="text-align: center; width: 15%;">Hours</th></tr></thead><tbody>${detailedLogBody}</tbody>${detailedLogFooter}</table></body></html>`;
             
             try {
                 const blob = new Blob([reportHTML], { type: 'text/html' });
@@ -1638,38 +1722,38 @@
 
         // --- INLINE DATA AND IMPORT LOGIC ---
 
-        // OCTOBER 2025 SHIFT DATA (UPDATED: AL=12h, F1=AdHoc, All duties mapped to Sentry or Others)
+        // OCTOBER 2025 SHIFT DATA (UPDATED: AL=12h, F1=AdHoc 13h, All duties mapped to Sentry or Others)
         const OCTOBER_SHIFTS_2025 = [
             { day: 1, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
-            { day: 2, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 }, 
-            { day: 3, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
-            { day: 4, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
-            { day: 5, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 2, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 13 }, // Set to 13h per user clarification
+            { day: 3, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 13 }, // Set to 13h per user clarification
+            { day: 4, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 13 }, // Set to 13h per user clarification
+            { day: 5, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 13 }, // Set to 13h per user clarification
             { day: 6, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 7, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 7, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 8, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 9, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 10, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 11, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 12, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 13, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 13, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 14, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 16, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
-            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
-            { day: 18, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
-            { day: 19, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
-            { day: 20, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
+            { day: 18, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
+            { day: 19, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
+            { day: 20, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 21, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 22, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 23, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 24, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 24, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 25, type: 'MORNING', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 26, type: 'MORNING', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 27, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 28, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 29, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 30, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 30, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 31, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 } 
         ];
 
@@ -1679,31 +1763,31 @@
             { day: 2, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 3, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 },
             { day: 4, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 5, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
+            { day: 5, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 6, type: 'MORNING', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 7, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
             { day: 8, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 },
             { day: 9, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 10, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 11, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
+            { day: 11, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 12, type: 'MORNING', location: 'FIRST AID', ot: false, team: 'Others', hours: 12 }, 
             { day: 13, type: 'MORNING', location: 'AED', ot: false, team: 'Others', hours: 12 }, 
             { day: 14, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
             { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 16, type: 'NIGHT', location: 'E1', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 18, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 19, type: 'MORNING', location: 'CNB', ot: false, team: 'Others', hours: 12 }, 
             { day: 20, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 21, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 22, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 23, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
+            { day: 23, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 24, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 25, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 26, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 27, type: 'NIGHT', location: 'AdHoc', ot: false, team: 'Others', hours: 12 }, 
             { day: 28, type: 'NIGHT', location: 'OT', ot: true, team: 'Others', hours: 12 }, 
-            { day: 29, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
+            { day: 29, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, 
             { day: 30, type: 'MORNING', location: 'AdHoc', ot: false, team: 'Others', hours: 12 } 
         ];
 
@@ -1718,11 +1802,14 @@
 
             // Handle location overrides based on input data specific to the current shift block
             if (location === 'F1') {
-                location = 'AdHoc_F1'; // F1 maps to AdHoc_F1 duty
+                location = 'AdHoc_F1'; 
                 team = 'Others';
+                hours = 13; // F1 is 13 hours, per user clarification
             } else if (location === 'AdHoc' && shift.day === 27 && month === 11) {
-                // Specific manual mapping for November 27 to align with the new AdHoc_
-                location = 'AdHoc_Duty'; // Arbitrary AdHoc detail for the empty one
+                location = 'AdHoc_Duty';
+                team = 'Others';
+            } else if (location === 'AdHoc' && shift.day === 30 && month === 11) {
+                location = 'AdHoc_Duty';
                 team = 'Others';
             }
             
@@ -1758,9 +1845,9 @@
                 location = OFF_DAY_MARKER;
             }
             
-            // If the original data marked it as OT, respect the hours set there.
+            // If the original data marked it as OT, use the hours set in the data structure
             if (isOT && hours === 0) {
-                 hours = 12; // Ensure OT shifts have 12h logged unless explicitly set otherwise
+                 hours = 12; 
             }
 
 
@@ -1841,7 +1928,7 @@
                 
                 try {
                     // Call the function directly, as it's now defined globally.
-                    await importFunction(db, userId, showToast); 
+                    await importFunction(db, userId, toastCallback); 
                 } catch (error) {
                     console.error(`Failed to execute ${monthName} import function:`, error);
                     showToast(`Failed to execute ${monthName} import. See console.`, true);
