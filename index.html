@@ -232,7 +232,7 @@
                             <select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
                             
                             <!-- NEW: Free Text Input for Redeploy Location -->
-                            <input type="text" id="redeploy-location-input" placeholder="Enter Redeploy Location (e.g., ICA Lock-up)" 
+                            <input type="text" id="redeploy-location-input" placeholder="Enter Redeploy Location (e.g., Block 12, Level 3)" 
                                    class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2 hidden">
                         </div>
                         
@@ -325,6 +325,9 @@
                     <!-- Updated button text and visibility logic in JS -->
                     <button id="manage-teams-btn" class="btn w-full bg-white/50 border border-indigo-600 text-indigo-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Team Settings</button>
                     <button id="generate-report-btn" class="btn w-full bg-white/50 border border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Generate Report</button>
+                    <!-- Updated Import Buttons -->
+                    <button id="import-october-btn" class="btn w-full bg-white/50 border border-green-600 text-green-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Import October 2025 Data</button>
+                    <button id="import-november-btn" class="btn w-full bg-white/50 border border-green-600 text-green-600 font-bold py-3 px-4 rounded-lg shadow-sm hover:bg-white/80">Import November 2025 Data</button>
                     <button id="clear-history-btn" class="btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md shadow-md">Clear History</button>
                </div>
            </div>
@@ -691,6 +694,10 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             // Listener for the duty location change to show/hide free text input
             document.getElementById('duty-location').addEventListener('change', updateRedeployInputVisibility);
 
+            // Import button listeners (October and NEW November)
+            document.getElementById('import-october-btn').addEventListener('click', (e) => handleImportMonth(e, 'october_importer.js', 'importOctoberShifts', 'October'));
+            document.getElementById('import-november-btn').addEventListener('click', (e) => handleImportMonth(e, 'november_importer.js', 'importNovemberShifts', 'November'));
+
             // Calendar listeners
             document.getElementById('calendar-close-button').addEventListener('click', () => toggleOverlay('calendar-overlay'));
 
@@ -960,6 +967,7 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                     redeployInput.value = shiftToEdit.location;
                     redeployInput.classList.remove('hidden');
                 } else {
+                    // Default to first option and hide redeploy input if not found/relevant
                     dutyLocation.value = dutyLocation.options[0].value; 
                     redeployInput.classList.add('hidden');
                     showToast(`Location "${shiftToEdit.location}" not found for team "${shiftToEdit.team}". Defaulting to first option.`, true);
@@ -1263,43 +1271,40 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
                 const allReportedLocations = new Set();
                 const countsMap = new Map();
 
+                // Initialize counts map with all predefined locations
                 teamLocations.forEach(loc => countsMap.set(loc, { morning: 0, night: 0 }));
 
                 shiftList.forEach(shift => {
                     allReportedLocations.add(shift.location);
-                    // Check if the shift location is a predefined location (Sentry/Foyer/Others dropdown value)
-                    if (countsMap.has(shift.location)) {
-                        const counts = countsMap.get(shift.location);
+                    
+                    // If the shift location is NOT a predefined location (and we are checking 'Others'), 
+                    // treat it as a Redeploy free-text entry and add it as a new key to the map.
+                    if (!countsMap.has(shift.location) && teamLocations.includes(REDEPLOY_MARKER)) {
+                         countsMap.set(shift.location, { morning: 0, night: 0 });
+                    }
+                    
+                    const counts = countsMap.get(shift.location);
+                    if (counts) {
                         if (shift.shift === 'Morning') {
                             counts.morning += 1;
                         } else if (shift.shift === 'Night') {
                             counts.night += 1;
                         }
-                    } else if (teamLocations.includes(REDEPLOY_MARKER)) {
-                         // If we are reporting 'Others' (which contains REDEPLOY_MARKER), 
-                         // and the shift location is NOT a predefined location, treat it as a Redeploy free-text entry.
-                         // Use the shift.location (free text) as the key in the map
-                        const existing = countsMap.get(shift.location) || { morning: 0, night: 0 };
-                        if (shift.shift === 'Morning') {
-                            existing.morning += 1;
-                        } else if (shift.shift === 'Night') {
-                            existing.night += 1;
-                        }
-                        countsMap.set(shift.location, existing);
                     }
                 });
                 
-                // Collect all keys (predefined + dynamic free-text redeploy locations) for rendering order
+                // Collect all unique locations reported (predefined + dynamic free-text redeploy locations)
+                // Filter out the REDEPLOY_MARKER itself, as its entries are covered by the free text locations
                 const locationsToReport = Array.from(new Set([...teamLocations, ...Array.from(allReportedLocations)]))
-                    .filter(loc => countsMap.has(loc) || allReportedLocations.has(loc))
-                    // Filter out the REDEPLOY_MARKER itself, as its entries are covered by the free text locations
-                    .filter(loc => loc !== REDEPLOY_MARKER);
+                    .filter(loc => (countsMap.has(loc) || allReportedLocations.has(loc)) && loc !== REDEPLOY_MARKER)
+                    // Sort the reported locations alphabetically
+                    .sort((a, b) => a.localeCompare(b));
 
 
                 // Generate table rows
                 return locationsToReport.map(loc => {
                     const counts = countsMap.get(loc) || { morning: 0, night: 0 };
-                    // For free-text locations, use a consistent color since they won't be in LOCATION_COLORS
+                    // For free-text locations, use the Redeploy marker color
                     const colorInfo = LOCATION_COLORS[loc] || LOCATION_COLORS[REDEPLOY_MARKER];
                     const colorHex = colorInfo.hex || '#f3f4f6';
                     
@@ -1420,7 +1425,8 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
             const detailedLogBody = shiftsForReport.map(s => {
                 const isOTMark = s.isOT ? `<span style="color:#f59e0b; font-weight:700;">(OT)</span>` : '';
                 // Use a default color if location is free text (not in predefined list)
-                const locationColor = LOCATION_COLORS[s.location]?.hex || LOCATION_COLORS[REDEPLOY_MARKER].hex || '#ffffff';
+                const colorInfo = LOCATION_COLORS[s.location] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800', hex: '#ffffff' };
+                const locationColor = colorInfo.hex;
                 
                 return `
                     <tr style="border-left: 5px solid ${locationColor};">
@@ -1475,6 +1481,63 @@ import { getFirestore, collection, collectionGroup, onSnapshot, addDoc, deleteDo
         // Aliasing the main function for the button listener
         function generateReport() {
             openReportGenerator();
+        }
+
+        // --- NEW GENERIC IMPORT HANDLER ---
+        /**
+         * Generic handler to load and execute a specific month's import script.
+         * @param {Event} e 
+         * @param {string} scriptName The filename of the month's importer script (e.g., 'november_importer.js').
+         * @param {string} functionName The function name inside the script (e.g., 'importNovemberShifts').
+         * @param {string} monthName The display name of the month (e.g., 'November').
+         */
+        async function handleImportMonth(e, scriptName, functionName, monthName) {
+            const importButton = e.target;
+            
+            // Confirmation Step
+            if (importButton.dataset.confirming === 'true') {
+                importButton.textContent = `Importing ${monthName}...`;
+                importButton.disabled = true;
+                importButton.classList.replace('bg-yellow-500', 'bg-gray-400');
+                
+                try {
+                    // Dynamically import the importer script and run the function
+                    const module = await import(`./${scriptName}`);
+                    await module[functionName](db, userId, showToast);
+                    // On success, the application will reload due to window.location.reload() inside the import script.
+                } catch (error) {
+                    console.error(`Failed to load or execute ${monthName} importer script:`, error);
+                    showToast(`Failed to load or run ${monthName} import script.`, true);
+                } finally {
+                    // Reset button state on failure
+                    importButton.dataset.confirming = 'false';
+                    importButton.textContent = `Import ${monthName} 2025 Data`;
+                    importButton.disabled = false;
+                    importButton.classList.replace('bg-gray-400', 'bg-white/50');
+                    importButton.classList.replace('text-white', 'text-green-600');
+                    importButton.classList.replace('hover:bg-yellow-600', 'hover:bg-white/80');
+                    toggleOverlay('tools-overlay'); // Close tools modal
+                }
+
+            } else {
+                // First click: Ask for confirmation
+                importButton.dataset.confirming = 'true';
+                importButton.textContent = `CONFIRM IMPORT for ${monthName}?`;
+                importButton.classList.replace('bg-white/50', 'bg-yellow-500');
+                importButton.classList.replace('text-green-600', 'text-white');
+                importButton.classList.replace('hover:bg-white/80', 'hover:bg-yellow-600');
+                
+                // Reset confirmation state after a few seconds
+                setTimeout(() => {
+                    if (importButton.dataset.confirming === 'true') {
+                        importButton.dataset.confirming = 'false';
+                        importButton.textContent = `Import ${monthName} 2025 Data`;
+                        importButton.classList.replace('bg-yellow-500', 'bg-white/50');
+                        importButton.classList.replace('text-white', 'text-green-600');
+                        importButton.classList.replace('hover:bg-yellow-600', 'hover:bg-white/80');
+                    }
+                }, 5000); // 5 seconds to confirm
+            }
         }
 
 
