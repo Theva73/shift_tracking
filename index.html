@@ -260,7 +260,7 @@
                             <select id="duty-location" class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
                             
                             <!-- NEW: Free Text Input for Redeploy Location -->
-                            <input type="text" id="redeploy-location-input" placeholder="Enter Redeploy Location (e.g., Block 12, Level 3)" 
+                            <input type="text" id="redeploy-location-input" placeholder="Enter AdHoc or Redeploy Details" 
                                    class="glass-input w-full p-2.5 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2 hidden">
                         </div>
                         
@@ -462,14 +462,15 @@
         let clearConfirmationTimeout = null;
         
         // --- CONSTANTS ---
-        // UPDATED: Added "Off Day" to DUTY_LOCATIONS.Others
+        // UPDATED: Added ADHOC_MARKER for free text AdHoc entry
         const REDEPLOY_MARKER = 'Redeploy location';
+        const ADHOC_MARKER = 'AdHoc Details'; 
         const OFF_DAY_MARKER = 'Off Day'; // New marker for clean manual logging of 0-hour off days
         const DUTY_LOCATIONS = { 
             Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], 
             Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], 
-            // ADDED: Redeploy marker and Off Day marker
-            Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC', OFF_DAY_MARKER, REDEPLOY_MARKER] 
+            // UPDATED: Removed static 'AdHoc' and replaced with free-text marker
+            Others: ['OT', 'Training', 'AL', 'MC', OFF_DAY_MARKER, REDEPLOY_MARKER, ADHOC_MARKER] 
         };
         const SHIFT_TEAMS = ['Sentry', 'Foyer', 'Others'];
         const SHIFT_TYPES = ['M', 'N', 'OFF']; 
@@ -487,12 +488,14 @@
             'N1 (CNB DST)': { bg: 'bg-indigo-100', text: 'text-indigo-800', hex: '#e0e7ff' }, 
             'VERTICAL PROWLER': { bg: 'bg-cyan-100', text: 'text-cyan-800', hex: '#cffafe' }, 
             'Training': { bg: 'bg-lime-100', text: 'text-lime-800', hex: '#f0fdf4' }, 
+            // Using a distinct color for ad-hoc free-text and redeploy entries
             'AdHoc': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' }, 
             'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 
             'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 
             'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' },
             [OFF_DAY_MARKER]: { bg: 'bg-green-100', text: 'text-green-800', hex: '#dcfce7' },
             [REDEPLOY_MARKER]: { bg: 'bg-purple-100', text: 'text-purple-800', hex: '#f3e8ff' },
+            [ADHOC_MARKER]: { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', hex: '#fae8ff' },
             // Colors for miscellaneous duties
             'FIRST AID': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
             'AED': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
@@ -998,22 +1001,41 @@
                 const redeployInput = document.getElementById('redeploy-location-input');
                 const relevantLocations = DUTY_LOCATIONS[shiftToEdit.team] || DUTY_LOCATIONS['Others'];
                 
-                // Check if the saved location is one of the predefined list options
+                let locationFound = false;
+
+                // 1. Check if the saved location is one of the predefined list options
                 if (relevantLocations.includes(shiftToEdit.location)) {
                     dutyLocation.value = shiftToEdit.location; 
                     redeployInput.classList.add('hidden');
-                } else if (shiftToEdit.team === 'Others') {
-                    // Assume it's a free-text redeploy location if it's 'Others' but not a predefined value
-                    // Set the dropdown to the marker and show the input with the saved value
-                    dutyLocation.value = REDEPLOY_MARKER;
-                    redeployInput.value = shiftToEdit.location;
-                    redeployInput.classList.remove('hidden');
-                } else {
+                    locationFound = true;
+                } 
+                // 2. Check if the saved location is an AdHoc_FreeText (starts with prefix)
+                else if (shiftToEdit.location.startsWith('AdHoc_') && shiftToEdit.team === 'Others') {
+                     const freeText = shiftToEdit.location.replace('AdHoc_', '');
+                     dutyLocation.value = ADHOC_MARKER;
+                     redeployInput.value = freeText;
+                     redeployInput.classList.remove('hidden');
+                     locationFound = true;
+                } 
+                 // 3. Check if saved location is Redeploy_FreeText
+                else if (shiftToEdit.location.startsWith('Redeploy_') && shiftToEdit.team === 'Others') {
+                     const freeText = shiftToEdit.location.replace('Redeploy_', '');
+                     dutyLocation.value = REDEPLOY_MARKER;
+                     redeployInput.value = freeText;
+                     redeployInput.classList.remove('hidden');
+                     locationFound = true;
+                }
+                
+                if (!locationFound) {
                     // Default to first option and hide redeploy input if not found/relevant
                     dutyLocation.value = dutyLocation.options[0].value; 
                     redeployInput.classList.add('hidden');
                     showToast(`Location "${shiftToEdit.location}" not found for team "${shiftToEdit.team}". Defaulting to first option.`, true);
                 }
+                
+                // Ensure placeholder updates based on final selection
+                updateRedeployInputVisibility(); 
+                
             }, 50); 
             
             document.getElementById('shift-hours').value = shiftToEdit.hours; 
@@ -1141,10 +1163,17 @@
             let finalLocation = dutyLocationSelect.value;
             
             if (finalLocation === REDEPLOY_MARKER) {
-                finalLocation = redeployInput.value.trim();
-                if (!finalLocation) {
-                    return showToast('Please enter the Redeploy location.', true);
+                const freeText = redeployInput.value.trim();
+                if (!freeText) {
+                    return showToast('Please enter the Redeploy location details.', true);
                 }
+                finalLocation = `Redeploy_${freeText}`; // Prefix for Redeploy
+            } else if (finalLocation === ADHOC_MARKER) {
+                const freeText = redeployInput.value.trim();
+                if (!freeText) {
+                    return showToast('Please enter the AdHoc details.', true);
+                }
+                finalLocation = `AdHoc_${freeText}`; // Prefix for AdHoc
             }
 
             const hours = parseFloat(document.getElementById('shift-hours').value);
@@ -1169,11 +1198,9 @@
                 shiftData.hours = 0;
                 shiftData.isOT = false;
             } else if (finalLocation === 'AL' || finalLocation === 'MC') {
-                // Keep the input hours, but ensure isOT is false for planned leave types
-                shiftData.isOT = false; 
-                if (shiftData.hours === 0) { // Fallback if user didn't enter 12
-                    shiftData.hours = 12;
-                }
+                // AL/MC must be 12h, regardless of user input
+                shiftData.hours = 12; 
+                shiftData.isOT = false;
             }
 
             try { 
@@ -1204,14 +1231,22 @@
         }
 
         /**
-         * Toggles the visibility of the free-text input for Redeploy location.
+         * Toggles the visibility of the free-text input for Redeploy location/AdHoc.
          */
         function updateRedeployInputVisibility() {
             const dutyLocationSelect = document.getElementById('duty-location');
             const redeployInput = document.getElementById('redeploy-location-input');
+            const selectedValue = dutyLocationSelect.value;
             
-            if (dutyLocationSelect.value === REDEPLOY_MARKER && selectedTeam === 'Others') {
+            if ((selectedValue === REDEPLOY_MARKER || selectedValue === ADHOC_MARKER) && selectedTeam === 'Others') {
                 redeployInput.classList.remove('hidden');
+                
+                // Set placeholder text dynamically
+                if (selectedValue === REDEPLOY_MARKER) {
+                     redeployInput.placeholder = "Enter Redeploy Location (e.g., Block 12, Level 3)";
+                } else {
+                     redeployInput.placeholder = "Enter AdHoc Details (e.g., Training Rota, Event Guard)";
+                }
                 redeployInput.focus();
             } else {
                 redeployInput.classList.add('hidden');
@@ -1332,8 +1367,8 @@
                     allReportedLocations.add(shift.location);
                     
                     // If the shift location is NOT a predefined location (and we are checking 'Others'), 
-                    // treat it as a Redeploy free-text entry and add it as a new key to the map.
-                    if (!countsMap.has(shift.location) && teamLocations.includes(REDEPLOY_MARKER)) {
+                    // check if it's a known prefixed free text entry or a completely custom one.
+                    if (!countsMap.has(shift.location) && (teamLocations.includes(REDEPLOY_MARKER) || teamLocations.includes(ADHOC_MARKER))) {
                          countsMap.set(shift.location, { morning: 0, night: 0 });
                     }
                     
@@ -1348,9 +1383,11 @@
                 });
                 
                 // Collect all unique locations reported (predefined + dynamic free-text redeploy locations)
-                // Filter out the REDEPLOY_MARKER itself, as its entries are covered by the free text locations
+                // Filter out the REDEPLOY_MARKER and ADHOC_MARKER themselves
+                const markersToRemove = [REDEPLOY_MARKER, ADHOC_MARKER];
+                
                 const locationsToReport = Array.from(new Set([...teamLocations, ...Array.from(allReportedLocations)]))
-                    .filter(loc => (countsMap.has(loc) || allReportedLocations.has(loc)) && loc !== REDEPLOY_MARKER)
+                    .filter(loc => (countsMap.has(loc) || allReportedLocations.has(loc)) && !markersToRemove.includes(loc))
                     // Sort the reported locations alphabetically
                     .sort((a, b) => a.localeCompare(b));
 
@@ -1358,13 +1395,19 @@
                 // Generate table rows
                 return locationsToReport.map(loc => {
                     const counts = countsMap.get(loc) || { morning: 0, night: 0 };
-                    // For free-text locations, use the Redeploy marker color
-                    const colorInfo = LOCATION_COLORS[loc] || LOCATION_COLORS[REDEPLOY_MARKER];
-                    const colorHex = colorInfo.hex || '#f3f4f6';
                     
+                    // Determine color: If prefixed AdHoc/Redeploy, use the ADHOC_MARKER color fallback.
+                    const isPrefixedFreeText = loc.startsWith('AdHoc_') || loc.startsWith('Redeploy_');
+                    const colorKey = LOCATION_COLORS[loc] ? loc : (isPrefixedFreeText ? ADHOC_MARKER : REDEPLOY_MARKER);
+                    const colorInfo = LOCATION_COLORS[colorKey] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                    
+                    // Display location: remove prefix for cleaner reporting
+                    const displayLoc = loc.replace('AdHoc_', 'AdHoc: ').replace('Redeploy_', 'Redeploy: ');
+
+
                     return `
                         <tr>
-                            <td style="padding: 8px; background-color:${colorInfo.bg}; border-radius: 4px;">${loc}</td>
+                            <td style="padding: 8px; background-color:${colorInfo.bg}; border-radius: 4px;">${displayLoc}</td>
                             <td style="padding: 8px; text-align: center;">${counts.morning}</td>
                             <td style="padding: 8px; text-align: center;">${counts.night}</td>
                         </tr>
@@ -1478,15 +1521,27 @@
             // 4. Build Enhanced Detailed Log Body
             const detailedLogBody = shiftsForReport.map(s => {
                 const isOTMark = s.isOT ? `<span style="color:#f59e0b; font-weight:700;">(OT)</span>` : '';
-                // Use a default color if location is free text (not in predefined list)
-                const colorInfo = LOCATION_COLORS[s.location] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800', hex: '#ffffff' };
+                
+                // Determine display location and color
+                let displayLocation = s.location;
+                let colorKey = s.location;
+                
+                if (s.location.startsWith('AdHoc_')) {
+                    displayLocation = `AdHoc: ${s.location.replace('AdHoc_', '')}`;
+                    colorKey = ADHOC_MARKER;
+                } else if (s.location.startsWith('Redeploy_')) {
+                    displayLocation = `Redeploy: ${s.location.replace('Redeploy_', '')}`;
+                    colorKey = REDEPLOY_MARKER;
+                }
+
+                const colorInfo = LOCATION_COLORS[colorKey] || LOCATION_COLORS[REDEPLOY_MARKER] || { bg: 'bg-gray-100', text: 'text-gray-800', hex: '#ffffff' };
                 const locationColor = colorInfo.hex;
                 
                 return `
                     <tr style="border-left: 5px solid ${locationColor};">
                         <td style="padding: 8px;">${new Date(s.rawDate+'T00:00:00').toLocaleDateString('en-GB')}</td>
                         <td style="padding: 8px; font-weight: 600;">${s.shift}</td>
-                        <td style="padding: 8px;">${s.location}</td>
+                        <td style="padding: 8px;">${displayLocation}</td>
                         <td style="padding: 8px; text-align: center;">${s.hours} ${isOTMark}</td>
                     </tr>
                 `;
@@ -1619,18 +1674,26 @@
 
             // Handle location overrides based on input data specific to the current shift block
             if (location === 'F1') {
-                location = 'AdHoc'; // F1 maps to AdHoc duty
+                location = 'AdHoc_F1'; // F1 maps to AdHoc_F1 duty
+                team = 'Others';
+            } else if (location === 'AdHoc' && shift.day === 27 && month === 11) {
+                // Specific manual mapping for November 27 to align with the new AdHoc_
+                location = 'AdHoc_Duty'; // Arbitrary AdHoc detail for the empty one
                 team = 'Others';
             }
-            // Standard duty classification
-            else if (location === 'AL' || location === 'MC' || location === 'OT' || location === 'Training' || location === 'AdHoc' || location === 'CNB' || location === 'FIRST AID' || location === 'AED' || location === OFF_DAY_MARKER) {
+            
+            // If location is AdHoc, Training, CNB, FIRST AID, etc., ensure team is Others
+            else if (['AL', 'MC', 'OT', 'Training', 'CNB', 'FIRST AID', 'AED', OFF_DAY_MARKER, REDEPLOY_MARKER].includes(location) || location.startsWith('AdHoc_')) {
                 team = 'Others';
-            } else if (location === 'VISITOR X-RAY' || location === 'STAFF X-RAY' || location === 'VERTICAL PROWLER') {
-                // Foyer duties fall under Others if user is restricted, but the team marker is useful
+            } else if (location.includes('X-RAY') || location.includes('VERTICAL PROWLER')) {
                 team = 'Foyer';
+            } else if (location === 'AdHoc') { // Catch remaining AdHoc if not prefixed
+                location = 'AdHoc_Duty';
+                team = 'Others';
             } else {
-                 team = 'Sentry'; // Default to Sentry for E1, GH, P1, E3, N1, etc.
+                 team = 'Sentry'; // Default to Sentry for E1, GH, P1, E3, N1, OE, etc.
             }
+
 
             // Normalize shift type
             if (actualShift.includes('DAY') || actualShift.includes('LEAVE')) {
@@ -1645,12 +1708,9 @@
             if (location === 'AL' || location === 'MC') {
                 hours = 12; // Annual Leave/MC is treated as 12h logged time
                 isOT = false;
-            } else if (location === OFF_DAY_MARKER) {
+            } else if (location === OFF_DAY_MARKER || shift.type === 'OFF DAY') {
                 hours = 0;
                 isOT = false;
-            } else if (shift.type === 'OFF DAY' && !isOT) {
-                // Default OFF DAY (non-AL/MC/OT) to 0 hours
-                hours = 0;
                 location = OFF_DAY_MARKER;
             }
             
@@ -2221,10 +2281,17 @@
                     }
                     
                     // Condense location text for smaller calendar cells
-                    // Use a max of 7 chars for location/duty display
-                    const displayLocation = loggedShift.location.length > 7 && loggedShift.location !== 'OE / STANDBY'
-                        ? loggedShift.location.substring(0, 7) + '...' 
-                        : loggedShift.location.replace(' (CNB DST)', ' N1').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X');
+                    let displayLocation = loggedShift.location;
+                    if (displayLocation.startsWith('AdHoc_')) {
+                         displayLocation = 'AdHoc:' + displayLocation.substring(6, 12);
+                    } else if (displayLocation.startsWith('Redeploy_')) {
+                         displayLocation = 'R/D:' + displayLocation.substring(9, 15);
+                    } else if (displayLocation.length > 7 && displayLocation !== 'OE / STANDBY') {
+                        displayLocation = displayLocation.substring(0, 7) + '...';
+                    } else {
+                        displayLocation = displayLocation.replace(' (CNB DST)', ' N1').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X');
+                    }
+
 
                     contentHTML = `
                         <div class="logged-shift-card">
