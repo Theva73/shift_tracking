@@ -1164,10 +1164,16 @@
                 isOT: isOT 
             };
 
-            // Set hours to 0 if "Off Day" is selected, regardless of user input
-            if (finalLocation === OFF_DAY_MARKER || finalLocation === 'AL' || finalLocation === 'MC') {
+            // Set hours based on statutory/off-day duties
+            if (finalLocation === OFF_DAY_MARKER) {
                 shiftData.hours = 0;
                 shiftData.isOT = false;
+            } else if (finalLocation === 'AL' || finalLocation === 'MC') {
+                // Keep the input hours, but ensure isOT is false for planned leave types
+                shiftData.isOT = false; 
+                if (shiftData.hours === 0) { // Fallback if user didn't enter 12
+                    shiftData.hours = 12;
+                }
             }
 
             try { 
@@ -1574,31 +1580,31 @@
             { day: 2, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 3, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 },
             { day: 4, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 5, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 5, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
             { day: 6, type: 'MORNING', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 7, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
             { day: 8, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 },
             { day: 9, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 10, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 11, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 11, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
             { day: 12, type: 'MORNING', location: 'FIRST AID', ot: false, team: 'Others', hours: 12 }, 
             { day: 13, type: 'MORNING', location: 'AED', ot: false, team: 'Others', hours: 12 }, 
             { day: 14, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
             { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 16, type: 'NIGHT', location: 'E1', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
             { day: 18, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 19, type: 'MORNING', location: 'CNB', ot: false, team: 'Others', hours: 12 }, 
             { day: 20, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 21, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 22, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 23, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 23, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
             { day: 24, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 25, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
             { day: 26, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 27, type: 'NIGHT', location: 'AdHoc', ot: false, team: 'Others', hours: 12 }, 
             { day: 28, type: 'NIGHT', location: 'OT', ot: true, team: 'Others', hours: 12 }, 
-            { day: 29, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 29, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL=12h
             { day: 30, type: 'MORNING', location: 'AdHoc', ot: false, team: 'Others', hours: 12 } 
         ];
 
@@ -1617,7 +1623,7 @@
                 team = 'Others';
             }
             // Standard duty classification
-            else if (location === 'AL' || location === 'MC' || location === 'OT' || location === 'Training' || location === 'AdHoc' || location === 'CNB' || location === 'FIRST AID' || location === 'AED' || location === 'OFF DAY') {
+            else if (location === 'AL' || location === 'MC' || location === 'OT' || location === 'Training' || location === 'AdHoc' || location === 'CNB' || location === 'FIRST AID' || location === 'AED' || location === OFF_DAY_MARKER) {
                 team = 'Others';
             } else if (location === 'VISITOR X-RAY' || location === 'STAFF X-RAY' || location === 'VERTICAL PROWLER') {
                 // Foyer duties fall under Others if user is restricted, but the team marker is useful
@@ -1635,7 +1641,7 @@
                 actualShift = 'Night';
             }
 
-            // CRITICAL UPDATE: Handle AL/MC hours based on user request (AL/MC = 12h logged, OFF DAY = 0h)
+            // CRITICAL UPDATE: Handle AL/MC hours based on user request (AL/MC = 12h logged)
             if (location === 'AL' || location === 'MC') {
                 hours = 12; // Annual Leave/MC is treated as 12h logged time
                 isOT = false;
@@ -1643,10 +1649,17 @@
                 hours = 0;
                 isOT = false;
             } else if (shift.type === 'OFF DAY' && !isOT) {
+                // Default OFF DAY (non-AL/MC/OT) to 0 hours
                 hours = 0;
                 location = OFF_DAY_MARKER;
             }
             
+            // If the original data marked it as OT, respect the hours set there.
+            if (isOT && hours === 0) {
+                 hours = 12; // Ensure OT shifts have 12h logged unless explicitly set otherwise
+            }
+
+
             const dateString = `${year}-${String(month).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`;
             
             return {
