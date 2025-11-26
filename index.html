@@ -375,9 +375,9 @@
     <div id="toast" class="fixed bottom-24 right-5 bg-green-500 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10 transition-all duration-300 z-50"></div>
 
     <script type="module">
+        // Import all necessary Firebase modules together to avoid variable reference issues during dynamic loading.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // NOTE: Only import the core Firestore functions needed here to prevent module conflicts during dynamic imports
         import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, getDocs, updateDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Set log level to debug to help diagnose Firestore issues
@@ -696,8 +696,9 @@
             document.getElementById('duty-location').addEventListener('change', updateRedeployInputVisibility);
 
             // Import button listeners (October and NEW November)
-            document.getElementById('import-october-btn').addEventListener('click', (e) => handleImportMonth(e, 'october_importer.js', 'importOctoberShifts', 'October'));
-            document.getElementById('import-november-btn').addEventListener('click', (e) => handleImportMonth(e, 'november_importer.js', 'importNovemberShifts', 'November'));
+            // CRITICAL: Call the now inline import functions directly
+            document.getElementById('import-october-btn').addEventListener('click', (e) => handleImportMonth(e, importOctoberShifts, 'October'));
+            document.getElementById('import-november-btn').addEventListener('click', (e) => handleImportMonth(e, importNovemberShifts, 'November'));
 
             // Calendar listeners
             document.getElementById('calendar-close-button').addEventListener('click', () => toggleOverlay('calendar-overlay'));
@@ -1484,15 +1485,166 @@
             openReportGenerator();
         }
 
+        // --- INLINE DATA AND IMPORT LOGIC ---
+
+        // OCTOBER 2025 SHIFT DATA
+        const OCTOBER_SHIFTS_2025 = [
+            { day: 1, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 2, type: 'MORNING', location: 'VISITOR X-RAY', ot: false, team: 'Foyer', hours: 12 }, 
+            { day: 3, type: 'MORNING', location: 'VISITOR X-RAY', ot: false, team: 'Foyer', hours: 12 },
+            { day: 4, type: 'MORNING', location: 'VISITOR X-RAY', ot: false, team: 'Foyer', hours: 12 },
+            { day: 5, type: 'MORNING', location: 'VISITOR X-RAY', ot: false, team: 'Foyer', hours: 12 },
+            { day: 6, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 7, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 8, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 9, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 10, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 11, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 12, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 13, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 14, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 16, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 18, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 19, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 20, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 21, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 22, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 23, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 24, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 25, type: 'MORNING', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 26, type: 'MORNING', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 27, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 28, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 29, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 30, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 31, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 } 
+        ];
+
+        // NOVEMBER 2025 SHIFT DATA
+        const NOVEMBER_SHIFTS_2025 = [
+            { day: 1, type: 'MORNING', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 },
+            { day: 2, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 3, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 },
+            { day: 4, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 5, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 6, type: 'MORNING', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 7, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
+            { day: 8, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 },
+            { day: 9, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 10, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 11, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 12, type: 'MORNING', location: 'FIRST AID', ot: false, team: 'Others', hours: 12 }, 
+            { day: 13, type: 'MORNING', location: 'AED', ot: false, team: 'Others', hours: 12 }, 
+            { day: 14, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 },
+            { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 16, type: 'NIGHT', location: 'E1', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 18, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 19, type: 'MORNING', location: 'CNB', ot: false, team: 'Others', hours: 12 }, 
+            { day: 20, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 21, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 22, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
+            { day: 23, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 24, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 25, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 26, type: 'NIGHT', location: 'OE / STANDBY', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 27, type: 'NIGHT', location: 'AdHoc', ot: false, team: 'Others', hours: 12 }, 
+            { day: 28, type: 'NIGHT', location: 'OT', ot: true, team: 'Others', hours: 12 }, 
+            { day: 29, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 30, type: 'MORNING', location: 'AdHoc', ot: false, team: 'Others', hours: 12 } 
+        ];
+
+
+        // UTILITY FUNCTION: Map shift data to final Firestore object
+        const mapShiftData = (shift, year, month) => {
+            let actualShift = shift.type;
+            let team = shift.team;
+            let location = shift.location;
+            let hours = shift.hours;
+
+            // Normalize shift/duty related types
+            if (actualShift.includes('DAY') || actualShift === 'ANNUAL LEAVE' || actualShift === 'MEDICAL LEAVE') {
+                 actualShift = 'Morning'; 
+                 team = 'Others';
+                 hours = 0; 
+                 if (shift.type === 'ANNUAL LEAVE') location = 'AL';
+                 else if (shift.type.includes('OFF DAY')) location = 'AL'; 
+                 else if (shift.type.includes('MEDICAL LEAVE')) location = 'MC';
+            } else if (actualShift.includes('MORNING')) {
+                actualShift = 'Morning';
+            } else if (actualShift.includes('NIGHT')) {
+                actualShift = 'Night';
+            }
+
+            const dateString = `${year}-${String(month).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`;
+            
+            return {
+                rawDate: dateString,
+                shiftTime: actualShift === 'Morning' ? '08:00' : '20:00',
+                shift: actualShift,
+                team: team, 
+                location: location,
+                hours: hours,
+                isOT: shift.ot
+            };
+        };
+
+        /**
+         * Uploads the hardcoded shift data to Firestore.
+         * @param {object} firestoreDb The Firestore instance.
+         * @param {string} currentUserId The authenticated user's ID.
+         * @param {function} toastCallback Function to display toast messages.
+         */
+        async function importOctoberShifts(firestoreDb, currentUserId, toastCallback) {
+            if (!currentUserId) {
+                toastCallback('Please sign in before importing data.', true);
+                return;
+            }
+            const year = 2025;
+            const month = 10; // October
+            const shiftCollectionRef = collection(firestoreDb, `users/${currentUserId}/shifts`);
+            const importPromises = [];
+
+            OCTOBER_SHIFTS_2025.forEach(shiftData => {
+                const finalShift = mapShiftData(shiftData, year, month);
+                importPromises.push(addDoc(shiftCollectionRef, finalShift));
+            });
+
+            await Promise.all(importPromises);
+            toastCallback(`Successfully imported ${importPromises.length} shifts for October 2025!`, false);
+            window.location.reload(); 
+        }
+
+        async function importNovemberShifts(firestoreDb, currentUserId, toastCallback) {
+            if (!currentUserId) {
+                toastCallback('Please sign in before importing data.', true);
+                return;
+            }
+            const year = 2025;
+            const month = 11; // November
+            const shiftCollectionRef = collection(firestoreDb, `users/${currentUserId}/shifts`);
+            const importPromises = [];
+
+            NOVEMBER_SHIFTS_2025.forEach(shiftData => {
+                const finalShift = mapShiftData(shiftData, year, month);
+                importPromises.push(addDoc(shiftCollectionRef, finalShift));
+            });
+
+            await Promise.all(importPromises);
+            toastCallback(`Successfully imported ${importPromises.length} shifts for November 2025!`, false);
+            window.location.reload(); 
+        }
+
         // --- NEW GENERIC IMPORT HANDLER ---
         /**
-         * Generic handler to load and execute a specific month's import script.
+         * Generic handler to load and execute a specific month's import function.
          * @param {Event} e 
-         * @param {string} scriptName The filename of the month's importer script (e.g., 'november_importer.js').
-         * @param {string} functionName The function name inside the script (e.g., 'importNovemberShifts').
+         * @param {function} importFunction The function to call (e.g., importOctoberShifts).
          * @param {string} monthName The display name of the month (e.g., 'November').
          */
-        async function handleImportMonth(e, scriptName, functionName, monthName) {
+        async function handleImportMonth(e, importFunction, monthName) {
             const importButton = e.target;
             
             // Confirmation Step
@@ -1502,26 +1654,19 @@
                 importButton.classList.replace('bg-yellow-500', 'bg-gray-400');
                 
                 try {
-                    // Dynamically import the importer script and run the function
-                    const module = await import(`./${scriptName}`);
-                    // Call the exported function using bracket notation
-                    await module[functionName](db, userId, showToast); 
-                    // On success, the application will reload due to window.location.reload() inside the import script.
+                    // Call the function directly, as it's now defined globally.
+                    await importFunction(db, userId, showToast); 
                 } catch (error) {
-                    console.error(`Failed to load or execute ${monthName} importer script:`, error);
+                    console.error(`Failed to execute ${monthName} import function:`, error);
                     showToast(`Failed to load or run ${monthName} import script.`, true);
                 } finally {
-                    // Reset button state on failure
+                    // Reset button state on failure (success leads to reload)
                     importButton.dataset.confirming = 'false';
                     importButton.textContent = `Import ${monthName} 2025 Data`;
                     importButton.disabled = false;
                     importButton.classList.replace('bg-gray-400', 'bg-white/50');
                     importButton.classList.replace('text-white', 'text-green-600');
                     importButton.classList.replace('hover:bg-yellow-600', 'hover:bg-white/80');
-                    // Only close overlay if the UI hasn't been reloaded
-                    if (document.getElementById('tools-overlay') && !document.getElementById('tools-overlay').classList.contains('hidden')) {
-                        toggleOverlay('tools-overlay'); 
-                    }
                 }
 
             } else {
@@ -1874,12 +2019,12 @@
             try {
                 if (editingTeam.id) {
                     // Update existing team
-                    const teamDocRef = doc(db, ...SHARED_TEAMS_PATH.split('/'), editingTeam.id);
+                    const teamDocRef = doc(db, `users/${userId}/teams`, editingTeam.id);
                     await updateDoc(teamDocRef, teamData);
                     showToast(`Team "${teamName}" updated!`);
                 } else {
                     // Add new team
-                    await addDoc(collection(db, ...SHARED_TEAMS_PATH.split('/')), teamData);
+                    await addDoc(collection(db, `users/${userId}/teams`), teamData);
                     showToast(`New team "${teamName}" created!`);
                 }
                 
