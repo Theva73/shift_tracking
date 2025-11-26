@@ -462,13 +462,14 @@
         let clearConfirmationTimeout = null;
         
         // --- CONSTANTS ---
-        // UPDATED: Added a marker value for free-text redeployment in DUTY_LOCATIONS.Others
+        // UPDATED: Added "Off Day" to DUTY_LOCATIONS.Others
         const REDEPLOY_MARKER = 'Redeploy location';
+        const OFF_DAY_MARKER = 'Off Day'; // New marker for clean manual logging of 0-hour off days
         const DUTY_LOCATIONS = { 
             Sentry: ['E1', 'GUARD HOUSE', 'ECHO 3', 'PATROL 1', 'OE / STANDBY', 'ECHO 2', 'PATROL 2', 'N1 (CNB DST)'], 
             Foyer: ['VISITOR X-RAY', 'STAFF X-RAY', 'N1 (CNB DST)', 'OE / STANDBY', 'VERTICAL PROWLER'], 
-            // ADDED: Redeploy marker here
-            Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC', REDEPLOY_MARKER] 
+            // ADDED: Redeploy marker and Off Day marker
+            Others: ['OT', 'Training', 'AdHoc', 'AL', 'MC', OFF_DAY_MARKER, REDEPLOY_MARKER] 
         };
         const SHIFT_TEAMS = ['Sentry', 'Foyer', 'Others'];
         const SHIFT_TYPES = ['M', 'N', 'OFF']; 
@@ -490,7 +491,7 @@
             'AL': { bg: 'bg-sky-100', text: 'text-sky-800', hex: '#e0f2fe' }, 
             'MC': { bg: 'bg-rose-100', text: 'text-rose-800', hex: '#ffe4e6' }, 
             'OT': { bg: 'bg-amber-100', text: 'text-amber-800', hex: '#fef3c7' },
-            // Added default color for Redeploy marker - actual saved value might differ
+            [OFF_DAY_MARKER]: { bg: 'bg-green-100', text: 'text-green-800', hex: '#dcfce7' },
             [REDEPLOY_MARKER]: { bg: 'bg-purple-100', text: 'text-purple-800', hex: '#f3e8ff' },
             // Colors for miscellaneous duties
             'FIRST AID': { bg: 'bg-red-100', text: 'text-red-800', hex: '#fee2e2' },
@@ -1163,6 +1164,12 @@
                 isOT: isOT 
             };
 
+            // Set hours to 0 if "Off Day" is selected, regardless of user input
+            if (finalLocation === OFF_DAY_MARKER || finalLocation === 'AL' || finalLocation === 'MC') {
+                shiftData.hours = 0;
+                shiftData.isOT = false;
+            }
+
             try { 
                 if (editingShiftId) { 
                     await updateDoc(doc(db, `users/${userId}/shifts`, editingShiftId), shiftData); 
@@ -1526,38 +1533,38 @@
 
         // --- INLINE DATA AND IMPORT LOGIC ---
 
-        // OCTOBER 2025 SHIFT DATA
+        // OCTOBER 2025 SHIFT DATA (UPDATED: AL=12h, F1=AdHoc, All duties mapped to Sentry or Others)
         const OCTOBER_SHIFTS_2025 = [
             { day: 1, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
-            { day: 2, type: 'MORNING', location: 'F1', ot: false, team: 'Others', hours: 12 }, // F1 -> AdHoc/Others
-            { day: 3, type: 'MORNING', location: 'F1', ot: false, team: 'Others', hours: 12 }, // F1 -> AdHoc/Others
-            { day: 4, type: 'MORNING', location: 'F1', ot: false, team: 'Others', hours: 12 }, // F1 -> AdHoc/Others
-            { day: 5, type: 'MORNING', location: 'F1', ot: false, team: 'Others', hours: 12 }, // F1 -> AdHoc/Others
+            { day: 2, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 }, 
+            { day: 3, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 4, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
+            { day: 5, type: 'MORNING', location: 'F1', ot: false, team: 'Sentry', hours: 12 },
             { day: 6, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 7, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 7, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
             { day: 8, type: 'NIGHT', location: 'PATROL 2', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 9, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 10, type: 'NIGHT', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 11, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 12, type: 'NIGHT', location: 'N1 (CNB DST)', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 13, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 13, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
             { day: 14, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 15, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 16, type: 'NIGHT', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
-            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
-            { day: 18, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
-            { day: 19, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 0 },
-            { day: 20, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 17, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 18, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 19, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
+            { day: 20, type: 'ANNUAL LEAVE', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
             { day: 21, type: 'NIGHT', location: 'PATROL 1', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 22, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 23, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 24, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 24, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
             { day: 25, type: 'MORNING', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 26, type: 'MORNING', location: 'ECHO 3', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 27, type: 'MORNING', location: 'E1', ot: false, team: 'Sentry', hours: 12 },
             { day: 28, type: 'NIGHT', location: 'N1 (CNB DST)', ot: false, team: 'Sentry', hours: 12 }, 
             { day: 29, type: 'NIGHT', location: 'ECHO 3', ot: true, team: 'Sentry', hours: 12 }, 
-            { day: 30, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 0 },
+            { day: 30, type: 'OFF DAY', location: 'AL', ot: false, team: 'Others', hours: 12 }, // AL hours set to 12h
             { day: 31, type: 'MORNING', location: 'GUARD HOUSE', ot: false, team: 'Sentry', hours: 12 } 
         ];
 
@@ -1602,17 +1609,18 @@
             let team = shift.team;
             let location = shift.location;
             let hours = shift.hours;
-            const isOT = shift.ot;
+            let isOT = shift.ot;
 
-            // Handle location overrides based on input data specific to October
+            // Handle location overrides based on input data specific to the current shift block
             if (location === 'F1') {
                 location = 'AdHoc'; // F1 maps to AdHoc duty
                 team = 'Others';
             }
             // Standard duty classification
-            else if (location === 'AL' || location === 'MC' || location === 'OT' || location === 'Training' || location === 'AdHoc' || location === 'CNB' || location === 'FIRST AID' || location === 'AED') {
+            else if (location === 'AL' || location === 'MC' || location === 'OT' || location === 'Training' || location === 'AdHoc' || location === 'CNB' || location === 'FIRST AID' || location === 'AED' || location === 'OFF DAY') {
                 team = 'Others';
             } else if (location === 'VISITOR X-RAY' || location === 'STAFF X-RAY' || location === 'VERTICAL PROWLER') {
+                // Foyer duties fall under Others if user is restricted, but the team marker is useful
                 team = 'Foyer';
             } else {
                  team = 'Sentry'; // Default to Sentry for E1, GH, P1, E3, N1, etc.
@@ -1627,11 +1635,18 @@
                 actualShift = 'Night';
             }
 
-            // Correct hours for OFF/LEAVE duties
-            if (location === 'AL' || location === 'MC' || actualShift.includes('DAY')) {
-                 hours = 0;
+            // CRITICAL UPDATE: Handle AL/MC hours based on user request (AL/MC = 12h logged, OFF DAY = 0h)
+            if (location === 'AL' || location === 'MC') {
+                hours = 12; // Annual Leave/MC is treated as 12h logged time
+                isOT = false;
+            } else if (location === OFF_DAY_MARKER) {
+                hours = 0;
+                isOT = false;
+            } else if (shift.type === 'OFF DAY' && !isOT) {
+                hours = 0;
+                location = OFF_DAY_MARKER;
             }
-
+            
             const dateString = `${year}-${String(month).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`;
             
             return {
@@ -2196,7 +2211,7 @@
                     // Use a max of 7 chars for location/duty display
                     const displayLocation = loggedShift.location.length > 7 && loggedShift.location !== 'OE / STANDBY'
                         ? loggedShift.location.substring(0, 7) + '...' 
-                        : loggedShift.location.replace(' (CNB DST)', '').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X');
+                        : loggedShift.location.replace(' (CNB DST)', ' N1').replace('OE / STANDBY', 'OE/SB').replace('VISITOR X-RAY', 'VISIT. X').replace('STAFF X-RAY', 'STAFF X');
 
                     contentHTML = `
                         <div class="logged-shift-card">
