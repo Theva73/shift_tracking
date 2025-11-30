@@ -1356,27 +1356,32 @@
                 // Create container
                 const element = document.createElement('div');
                 element.innerHTML = `<style>${styles}</style>${bodyContent}`;
-                element.style.width = '800px'; 
-                element.style.padding = '20px';
-                element.style.backgroundColor = 'white';
                 
-                // Important fix: Append to body to ensure context is correct, but hide it
-                // usage of 'fixed' and 'left: -10000px' prevents it from affecting layout but keeps it in DOM
-                element.style.position = 'fixed';
-                element.style.left = '-10000px';
+                // STYLES FOR RENDERING
+                // We place it at top-left but behind everything so it is "visible" to the renderer
+                // but hidden from the user. Moving it off-screen (left: -10000px) often causes
+                // blank captures on mobile because the viewport doesn't extend there.
+                element.style.position = 'fixed'; // Keep it fixed relative to viewport
                 element.style.top = '0';
+                element.style.left = '0';
+                element.style.width = '800px'; // Fixed width for A4 consistency
+                element.style.zIndex = '-9999'; // Hide behind everything
+                element.style.backgroundColor = 'white'; // Ensure background is white
+                element.style.color = 'black'; // Ensure text is black
+                
                 document.body.appendChild(element);
 
                 const opt = {
                     margin:       0.5,
                     filename:     filename,
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false }, 
+                    // scrollX: 0 and scrollY: 0 are crucial to prevent the canvas from shifting
+                    // based on the user's current scroll position.
+                    html2canvas:  { scale: 2, useCORS: true, allowTaint: true, scrollX: 0, scrollY: 0 }, 
                     jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
                 };
 
-                // Use the worker API for better control
-                // On iOS, .save() often fails silently or is blocked. We default to opening the blob.
+                // Use the worker API
                 await html2pdf().set(opt).from(element).output('bloburl').then(url => {
                      window.open(url, '_blank');
                 });
@@ -1391,7 +1396,6 @@
             } catch (error) {
                 console.error(error);
                 showToast('Failed to generate PDF: ' + error.message, true);
-                // Ensure cleanup happens even on error
                 if (element && element.parentNode) document.body.removeChild(element);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
