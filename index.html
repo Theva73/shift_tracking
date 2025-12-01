@@ -114,25 +114,27 @@
         .auto-shift-text { font-size: 1rem; margin-top: 4px; }
         .night-icon-svg path { transform: translate(0, 0); }
 
-        /* PDF Styles - Corrected for visibility */
+        /* PDF Styles - Corrected for VISIBILITY on mobile */
         #pdfContent {
-            /* Position absolute to remove it from document flow but keep it renderable */
+            /* CRITICAL FIX: 
+               We place the element at (0,0) so it's in the viewport (preventing blank rendering on iOS).
+               We use z-index: -9999 to hide it BEHIND the main app background.
+               We explicitly set background to white so it captures correctly.
+            */
             position: absolute;
-            /* Push it far off-screen so user doesn't see it */
-            left: -10000px;
             top: 0;
+            left: 0;
+            width: 800px;
+            z-index: -9999;
+            background-color: #ffffff;
             
             padding: 5mm; 
-            background-color: #fff; 
             color: #333;
             font-family: 'Arial', sans-serif; 
             box-sizing: border-box;
-            width: 800px; /* Fixed width for A4 consistency */
             
-            /* IMPORTANT: Do NOT use visibility: hidden or display: none here.
-               html2canvas will render a blank image if you do. 
-               The off-screen positioning handles the hiding. */
-            z-index: -9999;
+            /* Hidden by default, toggled to block during generation */
+            display: none; 
         }
         
         #pdfContent h1, #pdfContent h2 {
@@ -184,7 +186,7 @@
         </div>
     </div>
     
-    <!-- PDF Content Container -->
+    <!-- PDF Content Container (Hidden behind app) -->
     <div id="pdfContent"></div>
     
     <!-- Auth Overlay -->
@@ -1405,10 +1407,13 @@
                 const pdfContainer = document.getElementById('pdfContent');
                 if (!pdfContainer) throw new Error("PDF Container missing");
                 
-                // Inject the content into the hidden container
+                // Inject the content
                 pdfContainer.innerHTML = bodyContent;
                 
-                // Apply the specific PDF configuration from your working sample
+                // CRITICAL STEP: Make it visible so html2canvas can see it.
+                // We use z-index to hide it from the user's eye, but display:block makes it renderable.
+                pdfContainer.style.display = 'block';
+
                 const opt = {
                     margin:       0.5,
                     filename:     filename,
@@ -1417,8 +1422,10 @@
                         scale: 2, 
                         useCORS: true, 
                         logging: false, 
+                        // IMPORTANT: Force starting at top-left to avoid capturing blank scrolled areas
                         scrollX: 0, 
-                        scrollY: -window.scrollY, // Crucial for iOS scrolled view
+                        scrollY: 0, 
+                        // Set window dimensions to ensure full capture
                         windowWidth: pdfContainer.scrollWidth, 
                         windowHeight: pdfContainer.scrollHeight, 
                         removeContainer: true 
@@ -1426,13 +1433,13 @@
                     jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
                 };
 
-                // Use the bloburl method which avoids the "Invalid URI" crash on iOS
+                // Use bloburl output for iOS compatibility
                 await html2pdf().from(pdfContainer).set(opt).output('bloburl').then(url => {
-                     // Open in new tab - safe for iOS
                      window.open(url, '_blank');
                 });
                 
-                // Cleanup
+                // Cleanup: Hide and clear
+                pdfContainer.style.display = 'none';
                 pdfContainer.innerHTML = '';
                 
                 btn.innerHTML = originalText;
@@ -1444,7 +1451,10 @@
                 console.error(error);
                 showToast('Failed to generate PDF: ' + error.message, true);
                 const pdfContainer = document.getElementById('pdfContent');
-                if(pdfContainer) pdfContainer.innerHTML = '';
+                if(pdfContainer) {
+                    pdfContainer.style.display = 'none';
+                    pdfContainer.innerHTML = '';
+                }
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
