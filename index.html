@@ -114,14 +114,13 @@
         .auto-shift-text { font-size: 1rem; margin-top: 4px; }
         .night-icon-svg path { transform: translate(0, 0); }
 
-        /* PDF Styles from your sample project */
+        /* PDF Styles - Corrected for visibility */
         #pdfContent {
-            /* Position fixed to ensure it's in the viewport coordinate system */
-            position: fixed;
+            /* Position absolute to remove it from document flow but keep it renderable */
+            position: absolute;
+            /* Push it far off-screen so user doesn't see it */
+            left: -10000px;
             top: 0;
-            left: 0;
-            /* Hide it behind the main content so user doesn't see the flash */
-            z-index: -9999;
             
             padding: 5mm; 
             background-color: #fff; 
@@ -130,8 +129,10 @@
             box-sizing: border-box;
             width: 800px; /* Fixed width for A4 consistency */
             
-            /* Use visibility hidden instead of display none so it renders */
-            visibility: hidden; 
+            /* IMPORTANT: Do NOT use visibility: hidden or display: none here.
+               html2canvas will render a blank image if you do. 
+               The off-screen positioning handles the hiding. */
+            z-index: -9999;
         }
         
         #pdfContent h1, #pdfContent h2 {
